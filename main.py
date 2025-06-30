@@ -90,6 +90,11 @@ async def cmd_start(message: types.Message, state: FSMContext):
         reply_markup=get_main_menu()
     )
 
+@dp.message(F.text == "⬅️ В главное меню")
+async def back_to_main_menu(message: types.Message, state: FSMContext):
+    await state.clear()
+    await message.answer("🔝 <b>Главное меню:</b>", reply_markup=get_main_menu())
+
 @dp.message(F.text == "💬 Поддержка")
 async def support(message: types.Message):
     await message.answer(
