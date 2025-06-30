@@ -7,10 +7,8 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 
-# ВСТАВЬ СВОЙ ТОКЕН!
 BOT_TOKEN = "7220830808:AAE7R_edzGpvUNboGOthydsT9m81TIfiqzU"
-# Укажи свой user_id для админских прав
-ADMIN_IDS = {6712617550}
+ADMIN_IDS = {6712617550}  # Замени на свой user_id!
 SUPPORT_USERNAME = "bunkoc"
 
 CATEGORIES = {
@@ -23,10 +21,7 @@ CATEGORIES = {
     "Бизнесы": [],
 }
 
-bot = Bot(
-    token=BOT_TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
+bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
@@ -45,6 +40,8 @@ class EditAd(StatesGroup):
     editing_title = State()
     editing_description = State()
     editing_contacts = State()
+
+# --- Keyboards ---
 
 def get_main_menu():
     kb = [
@@ -70,13 +67,6 @@ def get_cancel_kb():
         resize_keyboard=True
     )
 
-def get_edit_kb(ad):
-    return types.InlineKeyboardMarkup(
-        inline_keyboard=[
-            [types.InlineKeyboardButton(text="✏️ Редактировать", callback_data=f"edit_{ad['id']}")]
-        ]
-    )
-
 def get_ad_kb(ad, user_id):
     kb = []
     row = []
@@ -98,11 +88,13 @@ def ads_paginate_kb(category, subcategory, page, total_pages):
         return types.InlineKeyboardMarkup(inline_keyboard=[btns])
     return None
 
+# --- Старт и главное меню ---
+
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer(
-        "<b>👋 Добро пожаловать в каталог объявлений Black Russia!</b>\n\n"
+        "<b>👋 Добро пожаловать в каталог объявлений Black Russia! для сервера KOSTROMA #77</b>\n\n"
         "Здесь вы можете удобно размещать и искать объявления по категориям.\n\n"
         "Выберите действие:",
         reply_markup=get_main_menu()
@@ -117,6 +109,8 @@ async def support(message: types.Message):
         disable_web_page_preview=True,
         reply_markup=get_main_menu()
     )
+
+# --- Добавление объявления ---
 
 @dp.message(F.text == "➕ Добавить объявление")
 async def add_ad_start(message: types.Message, state: FSMContext):
@@ -219,6 +213,8 @@ async def add_ad_contacts(message: types.Message, state: FSMContext):
         reply_markup=get_main_menu()
     )
 
+# --- Просмотр объявлений с пагинацией ---
+
 @dp.message(F.text == "📒 Каталог объявлений")
 async def show_categories(message: types.Message, state: FSMContext):
     await state.clear()
@@ -306,6 +302,8 @@ async def paginate_ads(call: types.CallbackQuery, state: FSMContext):
         await state.update_data(selected_category=cat)
     await call.answer()
     await send_ads(call.message, category=cat, subcategory=sub, page=int(page), show_back=True)
+
+# --- Удаление и редактирование объявлений ---
 
 @dp.callback_query(F.data.startswith("delete_"))
 async def delete_ad(call: types.CallbackQuery):
@@ -409,6 +407,8 @@ async def edit_contacts_input(message: types.Message, state: FSMContext):
             await message.answer("<b>Контакты изменены!</b>", reply_markup=get_main_menu())
             await state.clear()
             return
+
+# --- Запуск ---
 
 async def main():
     await dp.start_polling(bot)
