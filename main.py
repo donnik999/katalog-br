@@ -11,8 +11,34 @@ from datetime import datetime, timedelta
 
 BOT_TOKEN = "7220830808:AAE7R_edzGpvUNboGOthydsT9m81TIfiqzU"
 
-QUESTIONS_PATH = "data/questions.json"
 COOLDOWN_SECONDS = 5 * 60  # 5 минут
+
+SECTIONS = {
+    "Война за бизнес": [
+        {
+            "question": "Во сколько разрешено проводить войну за бизнес?",
+            "answers": [
+                "С 00:00 до 12:00",
+                "С 12:00 до 23:00",
+                "С 18:00 до 06:00",
+                "В любое время"
+            ],
+            "correct": 1
+        }
+    ],
+    "РП правила": [
+        {
+            "question": "Что значит аббревиатура РП?",
+            "answers": [
+                "Ролевая площадка",
+                "Реальные правила",
+                "Ролевая игра",
+                "Реальные понятия"
+            ],
+            "correct": 2
+        }
+    ]
+}
 
 if not os.path.exists("data"):
     os.makedirs("data")
@@ -78,7 +104,7 @@ async def back_to_main_menu(message: types.Message, state: FSMContext):
 
 @dp.message(F.text == "🗂 Разделы вопросов")
 async def choose_section(message: types.Message, state: FSMContext):
-    qdata = load_questions()
+    qdata = SECTIONS
     if not qdata:
         await message.answer("Разделы пока не добавлены.")
         return
