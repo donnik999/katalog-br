@@ -241,7 +241,6 @@ def admin_menu():
     return types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
 @dp.message(Command("start"))
-@dp.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
     try:
@@ -260,7 +259,8 @@ async def cmd_start(message: types.Message, state: FSMContext):
             "<b>🎮 Добро пожаловать в викторину Black Russia!</b>\n"
             "Выбирай раздел, отвечай на вопросы, зарабатывай баллы и попадай в топ!\n\n"
             "Нажми кнопку или /menu для начала.\n\n"
-            f"<code>Ошибка: {e}</code>",
+            f"<code>Ошибка: {str(e)}</code>",
+            parse_mode="HTML",
             reply_markup=main_menu(message.from_user.id)
         )
 
