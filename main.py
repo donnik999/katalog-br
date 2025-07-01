@@ -43,18 +43,6 @@ SECTIONS = {
 if not os.path.exists("data"):
     os.makedirs("data")
 
-if not os.path.exists(QUESTIONS_PATH):
-    with open(QUESTIONS_PATH, "w", encoding="utf-8") as f:
-        json.dump({}, f, ensure_ascii=False, indent=2)
-
-def load_questions():
-    with open(QUESTIONS_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def save_questions(qdata):
-    with open(QUESTIONS_PATH, "w", encoding="utf-8") as f:
-        json.dump(qdata, f, ensure_ascii=False, indent=2)
-
 bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher(storage=MemoryStorage())
 
