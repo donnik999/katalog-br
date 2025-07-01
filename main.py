@@ -241,17 +241,26 @@ def admin_menu():
     return types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
 @dp.message(Command("start"))
+@dp.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
-    # Отправляем фото
-    with open("welcome.jpg", "rb") as photo:
-        await message.answer_photo(
-            photo=photo,
-            caption=(
-                "<b>🎮 Добро пожаловать в викторину Black Russia!</b>\n"
-                "Выбирай раздел, отвечай на вопросы, зарабатывай баллы и попадай в топ!\n\n"
-                "Нажми кнопку или /menu для начала."
-            ),
+    try:
+        with open("welcome.jpg", "rb") as photo:
+            await message.answer_photo(
+                photo=photo,
+                caption=(
+                    "<b>🎮 Добро пожаловать в викторину Black Russia!</b>\n"
+                    "Выбирай раздел, отвечай на вопросы, зарабатывай баллы и попадай в топ!\n\n"
+                    "Нажми кнопку или /menu для начала."
+                ),
+                reply_markup=main_menu(message.from_user.id)
+            )
+    except Exception as e:
+        await message.answer(
+            "<b>🎮 Добро пожаловать в викторину Black Russia!</b>\n"
+            "Выбирай раздел, отвечай на вопросы, зарабатывай баллы и попадай в топ!\n\n"
+            "Нажми кнопку или /menu для начала.\n\n"
+            f"<code>Ошибка: {e}</code>",
             reply_markup=main_menu(message.from_user.id)
         )
 
