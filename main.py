@@ -53,8 +53,8 @@ async def start(message: types.Message, state: FSMContext):
 
 def main_menu():
     kb = [
-        [types.KeyboardButton("🗂 Разделы вопросов")],
-        [types.KeyboardButton("🏆 Топ 10 игроков")]
+        [types.KeyboardButton(text="🗂 Разделы вопросов")],
+        [types.KeyboardButton(text="🏆 Топ 10 игроков")]
     ]
     return types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
