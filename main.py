@@ -243,12 +243,17 @@ def admin_menu():
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
-    await message.answer(
-        "<b>🎮 Добро пожаловать в викторину Black Russia!</b>\n"
-        "Выбирай раздел, отвечай на вопросы, зарабатывай баллы и попадай в топ!\n\n"
-        "Нажми кнопку или /menu для начала.",
-        reply_markup=main_menu(message.from_user.id)
-    )
+    # Отправляем фото
+    with open("welcome.jpg", "rb") as photo:
+        await message.answer_photo(
+            photo=photo,
+            caption=(
+                "<b>🎮 Добро пожаловать в викторину Black Russia!</b>\n"
+                "Выбирай раздел, отвечай на вопросы, зарабатывай баллы и попадай в топ!\n\n"
+                "Нажми кнопку или /menu для начала."
+            ),
+            reply_markup=main_menu(message.from_user.id)
+        )
 
 @dp.message(Command("menu"))
 async def cmd_menu(message: types.Message, state: FSMContext):
