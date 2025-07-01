@@ -5,15 +5,12 @@ from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
-from datetime import datetime, timedelta
+from datetime import datetime
 
-# ==== НАСТРОЙКИ БОТА ====
-BOT_TOKEN = "7220830808:AAE7R_edzGpvUNboGOthydsT9m81TIfiqzU"  # <-- сюда вставь свой токен
+BOT_TOKEN = "ВАШ_ТОКЕН_ТУТ"
+COOLDOWN_SECONDS = 5 * 60  # 5 минут на раздел
+ADMIN_ID = 6712617550
 
-COOLDOWN_SECONDS = 5 * 60  # 5 минут на один раздел
-
-# ==== ВОПРОСЫ И РАЗДЕЛЫ ====
-# Тут ты добавляешь новые разделы и вопросы по такому шаблону:
 SECTIONS = {
     "Война за бизнес": [
         {
@@ -50,29 +47,28 @@ SECTIONS = {
         }
     ]
 }
-# Чтобы добавить новый раздел — копируй блок выше, меняй название и вопросы.
 
-# ==== FSM State Machine ====
 class QuizStates(StatesGroup):
     choosing_section = State()
     answering = State()
+    waiting_broadcast = State()
 
-# ==== ИНИЦИАЛИЗАЦИЯ ====
 bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher(storage=MemoryStorage())
 
-# user_id -> {section: datetime_of_last_try}
 user_cooldowns = {}
-# user_id -> score
 user_scores = {}
+active_users = set()  # все, кто хотя бы раз проходил тест
 
-# ==== КНОПКИ ====
-def main_menu():
+def main_menu(user_id=None):
     kb = [
         [types.KeyboardButton(text="🗂 Разделы вопросов")],
         [types.KeyboardButton(text="🏆 Топ 10 игроков")],
         [types.KeyboardButton(text="ℹ️ Помощь")]
     ]
+    # Только для админа - кнопка админ-панели
+    if user_id == ADMIN_ID:
+        kb.append([types.KeyboardButton(text="👑 Админ-панель")])
     return types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
 def sections_menu():
@@ -89,22 +85,35 @@ def answers_kb(anslist):
         input_field_placeholder="Выбери вариант"
     )
 
-# ==== ХЭНДЛЕРЫ ====
+def support_menu():
+    url = "https://t.me/bunkoc"
+    return types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [types.InlineKeyboardButton(text="🧑‍💻 Написать в поддержку", url=url)]
+        ]
+    )
+
+def admin_menu():
+    kb = [
+        [types.KeyboardButton(text="📢 Оповестить пользователей")],
+        [types.KeyboardButton(text="⬅️ В главное меню")]
+    ]
+    return types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer(
         "<b>🎮 Добро пожаловать в викторину Black Russia!</b>\n"
-        "Выбирай раздел, отвечай на вопросы, соревнуйся с другими!\n\n"
+        "Выбирай раздел, отвечай на вопросы, зарабатывай баллы и попадай в топ!\n\n"
         "Нажми кнопку или /menu для начала.",
-        reply_markup=main_menu()
+        reply_markup=main_menu(message.from_user.id)
     )
 
 @dp.message(Command("menu"))
 async def cmd_menu(message: types.Message, state: FSMContext):
     await state.clear()
-    await message.answer("🔝 <b>Главное меню:</b>", reply_markup=main_menu())
+    await message.answer("🔝 <b>Главное меню:</b>", reply_markup=main_menu(message.from_user.id))
 
 @dp.message(F.text == "⬅️ В главное меню")
 async def back_to_main_menu(message: types.Message, state: FSMContext):
@@ -112,20 +121,19 @@ async def back_to_main_menu(message: types.Message, state: FSMContext):
 
 @dp.message(F.text == "ℹ️ Помощь")
 async def help_handler(message: types.Message):
-    await message.answer(
-        "✍️ <b>Как добавить вопросы и разделы?</b>\n"
-        "1. Открой файл <code>main.py</code>.\n"
-        "2. Найди переменную <code>SECTIONS</code> в начале файла.\n"
-        "3. Добавь новый раздел по шаблону:\n\n"
-        "<code>\"Имя раздела\": [\n"
-        "  {\"question\": \"Текст вопроса\", \"answers\": [\"Вариант1\", \"Вариант2\"], \"correct\": 0},\n"
-        "  ...\n"
-        "]</code>\n"
-        "4. Перезапусти бота.\n\n"
-        "За каждый правильный ответ начисляется 1 балл.\n"
-        "Можно пройти каждый раздел только 1 раз в 5 минут.\n"
-        "Топ 10 игроков — кнопка в меню."
+    text = (
+        "<b>🕹 О боте и системе баллов</b>\n\n"
+        "Это викторина по тематике Black Russia!\n"
+        "Выбирай интересующий раздел и отвечай на вопросы.\n"
+        "За каждый правильный ответ ты получаешь 1 балл.\n"
+        "<b>Каждый раздел можно проходить только 1 раз в 5 минут.</b>\n"
+        "Ограничение действует отдельно для каждого раздела.\n"
+        "Разделы вопросов будут дополняться ежедневно.\n\n"
+        "Следи за обновлениями и попадай в топ игроков!\n\n"
+        "Поддержка — <b>@bunkoc</b> (жми кнопку ниже для личных сообщений).\n"
+        "Удачи!"
     )
+    await message.answer(text, reply_markup=support_menu())
 
 @dp.message(F.text == "🗂 Разделы вопросов")
 async def choose_section(message: types.Message, state: FSMContext):
@@ -144,7 +152,6 @@ async def section_selected(message: types.Message, state: FSMContext):
     if section not in SECTIONS:
         await message.answer("❌ Такого раздела нет. Выбери из списка.")
         return
-    # Проверка cooldown
     uid = str(message.from_user.id)
     now = datetime.utcnow()
     cooldowns = user_cooldowns.get(uid, {})
@@ -173,11 +180,12 @@ async def ask_question(message, state: FSMContext):
         cooldowns = user_cooldowns.get(uid, {})
         cooldowns[section] = datetime.utcnow()
         user_cooldowns[uid] = cooldowns
+        active_users.add(uid)
         await message.answer(
             f"✅ <b>Раздел \"{section}\" завершён!</b>\n"
             f"Твои баллы: <b>{data['score']} из {len(questions)}</b>\n\n"
             f"Можешь попробовать другие разделы или посмотреть свой результат в топе.",
-            reply_markup=main_menu()
+            reply_markup=main_menu(message.from_user.id)
         )
         await state.clear()
         return
@@ -222,12 +230,51 @@ async def show_top(message: types.Message, state: FSMContext):
         try:
             user = await bot.get_chat(uid)
             name = user.full_name if user else f"User {uid}"
+            username = f"@{user.username}" if user and user.username else ""
         except Exception:
             name = f"User {uid}"
-        text += f"{i}. <b>{name}</b> — {bal} баллов\n"
+            username = ""
+        text += f"{i}. <b>{name}</b> {f'({username})' if username else ''} — {bal} баллов\n"
     await message.answer(text)
 
-# === Запуск бота ===
+# ==== Админ-панель ====
+@dp.message(F.text == "👑 Админ-панель")
+async def admin_panel(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    await state.clear()
+    await message.answer("👑 <b>Админ-панель</b>\n\nВыберите действие:", reply_markup=admin_menu())
+
+@dp.message(F.text == "📢 Оповестить пользователей")
+async def start_broadcast(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    await state.set_state(QuizStates.waiting_broadcast)
+    await message.answer("Введите текст рассылки для всех пользователей. Для отмены — /menu")
+
+@dp.message(QuizStates.waiting_broadcast)
+async def broadcast_message(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    text = message.text
+    if not text or text.startswith("/"):
+        await state.clear()
+        await message.answer("Рассылка отменена.", reply_markup=main_menu(ADMIN_ID))
+        return
+    await message.answer("Рассылка началась, ожидайте завершения...", reply_markup=main_menu(ADMIN_ID))
+    count = 0
+    for uid in active_users:
+        try:
+            await bot.send_message(uid, f"📢 <b>Оповещение от админа:</b>\n\n{text}")
+            count += 1
+        except Exception:
+            pass
+    await state.clear()
+    await message.answer(f"Рассылка завершена. Получателей: {count}", reply_markup=admin_menu())
+
 async def main():
     await dp.start_polling(bot)
 
