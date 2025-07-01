@@ -7,7 +7,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from datetime import datetime
 
-BOT_TOKEN = "ВАШ_ТОКЕН_ТУТ"
+BOT_TOKEN = "7220830808:AAE7R_edzGpvUNboGOthydsT9m81TIfiqzU"
 COOLDOWN_SECONDS = 5 * 60  # 5 минут на раздел
 ADMIN_ID = 6712617550
 
