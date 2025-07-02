@@ -126,7 +126,7 @@ def load_photo_id():
     if os.path.exists(PHOTO_ID_FILE):
         with open(PHOTO_ID_FILE, 'r', encoding="utf-8") as f:
             d = json.load(f)
-            return d["photo_id"]
+            return d.get("photo_id")  # безопасно!
     return None
 
 # --- КНОПКИ ---
