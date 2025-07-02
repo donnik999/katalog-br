@@ -242,7 +242,7 @@ async def help_cmd(message: types.Message):
 
 @dp.message(F.text == "👤 Профиль")
 async def profile_cmd(message: types.Message):
-        user_id = str(message.from_user.id)
+    user_id = str(message.from_user.id)
     score = user_scores.get(user_id, 0)
     sorted_scores = sorted(
         ((uid, sc) for uid, sc in user_scores.items() if uid != "user_info"),
@@ -265,7 +265,7 @@ async def profile_cmd(message: types.Message):
 
 @dp.message(F.text == "🏆 Топ")
 async def top_cmd(message: types.Message):
-        if not user_scores:
+    if not user_scores:
         await message.answer("Пока никто не набрал баллы. Будь первым!", reply_markup=main_menu(message.from_user.id))
         return
     top = sorted(
@@ -281,7 +281,7 @@ async def top_cmd(message: types.Message):
         username_str = f"@{username}" if username else "—"
         text += f"{i}) <b>{first_name}</b> [{username_str}] (<code>{uid}</code>) — <b>{score}⭐</b>\n"
     await message.answer(text, reply_markup=main_menu(message.from_user.id))
-
+    
 @dp.message(F.text == "📚 Разделы")
 async def sections_cmd(message: types.Message, state: FSMContext):
     await state.clear()
