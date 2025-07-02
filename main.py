@@ -1,5 +1,7 @@
 import os
 import json
+from aiogram.enums import ParseMode
+from aiogram.client.default import DefaultBotProperties
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -158,7 +160,10 @@ def author_inline():
         ]
     )
 
-bot = Bot(token=TOKEN, parse_mode="HTML")
+bot = Bot(
+     token=TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+ )
 dp = Dispatcher()
 
 @dp.message(Command("start"))
@@ -217,7 +222,7 @@ async def sections_cmd(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Выбери раздел:", reply_markup=sections_menu())
 
-@dp.message(lambda m: any(m.text.startswith(SECTION_EMOJIS.get(sec['id'], DEFAULT_SECTION_EMOJI)) for sec in SECTIONS))
+@dp.message(lambda m: m.text and any(m.text.startswith(SECTION_EMOJIS.get(sec['id'], DEFAULT_SECTION_EMOJI)) for sec in SECTIONS))
 async def start_section(message: types.Message, state: FSMContext):
     user_id = str(message.from_user.id)
     for sec in SECTIONS:
