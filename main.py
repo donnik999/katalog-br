@@ -548,12 +548,12 @@ async def handle_non_photo(message: types.Message, state: FSMContext):
 
 @dp.message(F.text == "💾 Сохранить данные")
 async def save_data_admin(message: types.Message, state: FSMContext):
+    print("НАЖАТА КНОПКА СОХРАНИТЬ ДАННЫЕ")  # <--- добавь это
     if message.from_user.id != ADMIN_ID:
         await message.answer("Нет доступа.")
         return
     save_data()
     await message.answer("Данные пользователей успешно сохранены!", reply_markup=admin_menu())
-
 async def main():
     await dp.start_polling(bot)
 
