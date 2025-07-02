@@ -218,6 +218,7 @@ dp = Dispatcher(storage=MemoryStorage())
 user_cooldowns = {}
 user_scores = {}
 active_users = set()  # все, кто хотя бы раз проходил тест
+load_data()
 
 def main_menu(user_id=None):
     kb = [
@@ -379,6 +380,7 @@ async def ask_question(message, state: FSMContext):
         cooldowns[section] = datetime.utcnow()
         user_cooldowns[uid] = cooldowns
         active_users.add(uid)
+        save_data()
         await message.answer(
             f"✅ <b>Раздел \"{section}\" завершён!</b>\n"
             f"Твои баллы: <b>{data['score']} из {len(questions)}</b>\n\n"
