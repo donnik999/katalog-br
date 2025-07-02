@@ -17,13 +17,37 @@ PHOTO_FILE = "welcome_photo_id.json"
 DATA_FILE = "data.json" 
 
 def load_data():
+    global user_scores, user_cooldowns, active_users
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            data = json.load(f)
-            global user_scores, user_cooldowns, active_users
-            user_scores = data.get("user_scores", {})
-            user_cooldowns = data.get("user_cooldowns", {})
-            active_users = set(data.get("active_users", []))
+        try:
+            with open(DATA_FILE, "r") as f:
+                data = json.load(f)
+                user_scores = data.get("user_scores", {})
+                user_cooldowns = data.get("user_cooldowns", {})
+                active_users = set(data.get("active_users", []))
+        except Exception as e:
+            print("Ошибка чтения data.json:", e)
+            # Попробуем восстановить из резервной копии
+            backup = DATA_FILE + ".bak"
+            if os.path.exists(backup):
+                try:
+                    with open(backup, "r") as f:
+                        data = json.load(f)
+                        user_scores = data.get("user_scores", {})
+                        user_cooldowns = data.get("user_cooldowns", {})
+                        active_users = set(data.get("active_users", []))
+                        print("Восстановлено из резервной копии!")
+                        return
+                except Exception as e2:
+                    print("Ошибка чтения резервной копии:", e2)
+            # Если не удалось — сбрасываем данные
+            user_scores = {}
+            user_cooldowns = {}
+            active_users = set()
+    else:
+        user_scores = {}
+        user_cooldowns = {}
+        active_users = set()
 
 def save_data():
     data = {
@@ -31,8 +55,13 @@ def save_data():
         "user_cooldowns": user_cooldowns,
         "active_users": list(active_users),
     }
-    with open(DATA_FILE, "w") as f:
+    # Создаём резервную копию
+    if os.path.exists(DATA_FILE):
+        shutil.copy(DATA_FILE, DATA_FILE + ".bak")
+    tmp_file = DATA_FILE + ".tmp"
+    with open(tmp_file, "w") as f:
         json.dump(data, f)
+    os.replace(tmp_file, DATA_FILE)
 
 SECTIONS = {
     "Война за бизнес": [
