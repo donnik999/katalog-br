@@ -408,12 +408,13 @@ async def show_top(message: types.Message, state: FSMContext):
 
 @dp.message(F.text == "👑 Админ-панель")
 async def admin_panel(message: types.Message, state: FSMContext):
+    print("DEBUG: message.from_user.id =", message.from_user.id)
+print("DEBUG: ADMIN_ID =", ADMIN_ID)
     if message.from_user.id != ADMIN_ID:
         await message.answer("Нет доступа.")
         return
     await state.clear()
     await message.answer("👑 <b>Админ-панель</b>\n\nВыберите действие:", reply_markup=admin_menu())
-
 @dp.message(F.text == "📢 Оповестить пользователей")
 async def start_broadcast(message: types.Message, state: FSMContext):
     if message.from_user.id != ADMIN_ID:
