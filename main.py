@@ -252,6 +252,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
                     "Выбирай раздел, отвечай на вопросы, зарабатывай баллы и попадай в топ!\n\n"
                     "Нажми кнопку или /menu для начала."
                 ),
+                parse_mode="HTML",  # обязательно!
                 reply_markup=main_menu(message.from_user.id)
             )
     except Exception as e:
