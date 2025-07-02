@@ -14,6 +14,7 @@ BOT_TOKEN = "7220830808:AAE7R_edzGpvUNboGOthydsT9m81TIfiqzU"
 COOLDOWN_SECONDS = 5 * 60  # 5 минут на раздел
 ADMIN_ID = 6712617550
 PHOTO_FILE = "welcome_photo_id.json"
+DATA_FILE = "data.json" 
 
 SECTIONS = {
     "Война за бизнес": [
@@ -263,6 +264,24 @@ def load_photo_id():
             data = json.load(f)
             return data.get("file_id")
     return None
+
+def load_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            data = json.load(f)
+            global user_scores, user_cooldowns, active_users
+            user_scores = data.get("user_scores", {})
+            user_cooldowns = data.get("user_cooldowns", {})
+            active_users = set(data.get("active_users", []))
+
+def save_data():
+    data = {
+        "user_scores": user_scores,
+        "user_cooldowns": user_cooldowns,
+        "active_users": list(active_users),
+    }
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f)
 
 def save_photo_id(file_id):
     with open(PHOTO_FILE, "w") as f:
