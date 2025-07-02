@@ -117,7 +117,7 @@ PROFILE_TEMPLATE = (
     "┗ Место в топе: <b>{place}</b> 🏆"
 )
 
-TOP_HEADER = "🏆 <b>Топ-10 игроков Black Russia:</b>\n"
+TOP_HEADER = "🏆 <b>Топ-10 пользователей данного бота:</b>\n"
 
 class Quiz(StatesGroup):
     section = State()
@@ -242,7 +242,7 @@ async def help_cmd(message: types.Message):
 
 @dp.message(F.text == "👤 Профиль")
 async def profile_cmd(message: types.Message):
-    user_id = str(message.from_user.id)
+        user_id = str(message.from_user.id)
     score = user_scores.get(user_id, 0)
     sorted_scores = sorted(
         ((uid, sc) for uid, sc in user_scores.items() if uid != "user_info"),
@@ -257,7 +257,7 @@ async def profile_cmd(message: types.Message):
         f"👤 <b>Твой профиль</b>\n"
         f"┏ ID: <code>{user_id}</code>\n"
         f"┣ Имя: <b>{first_name}</b>\n"
-        f"┣ Ник: <b>{username_str}</b>\n"
+        f"┣ TG ник: <b>{username_str}</b>\n"
         f"┣ Баллы: <b>{score}</b> ⭐\n"
         f"┗ Место в топе: <b>{place}</b> 🏆"
     )
@@ -265,7 +265,7 @@ async def profile_cmd(message: types.Message):
 
 @dp.message(F.text == "🏆 Топ")
 async def top_cmd(message: types.Message):
-    if not user_scores:
+        if not user_scores:
         await message.answer("Пока никто не набрал баллы. Будь первым!", reply_markup=main_menu(message.from_user.id))
         return
     top = sorted(
