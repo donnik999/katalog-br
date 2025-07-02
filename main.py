@@ -1,5 +1,6 @@
 import asyncio
 import os
+import datetime
 import shutil
 import json
 from datetime import datetime
@@ -18,13 +19,18 @@ PHOTO_FILE = "welcome_photo_id.json"
 DATA_FILE = "data.json" 
 
 def load_data():
+    def load_data():
     global user_scores, user_cooldowns, active_users
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r") as f:
                 data = json.load(f)
                 user_scores = data.get("user_scores", {})
-                user_cooldowns = data.get("user_cooldowns", {})
+                # Преобразуем обратно строки в datetime
+                user_cooldowns = {
+                    uid: {sec: datetime.datetime.fromisoformat(dt) for sec, dt in cooldowns.items()}
+                    for uid, cooldowns in data.get("user_cooldowns", {}).items()
+                }
                 active_users = set(data.get("active_users", []))
         except Exception as e:
             print("Ошибка чтения data.json:", e)
@@ -51,12 +57,16 @@ def load_data():
         active_users = set()
 
 def save_data():
+    # Преобразуем datetime в строки
+    cooldowns_serializable = {
+        uid: {sec: dt.isoformat() for sec, dt in cooldowns.items()}
+        for uid, cooldowns in user_cooldowns.items()
+    }
     data = {
         "user_scores": user_scores,
-        "user_cooldowns": user_cooldowns,
+        "user_cooldowns": cooldowns_serializable,
         "active_users": list(active_users),
     }
-    # Создаём резервную копию
     if os.path.exists(DATA_FILE):
         shutil.copy(DATA_FILE, DATA_FILE + ".bak")
     tmp_file = DATA_FILE + ".tmp"
