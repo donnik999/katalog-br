@@ -273,8 +273,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
         )
     else:
         await message.answer(
-            caption,
-            parse_mode="HTML",
+            caption, 
             reply_markup=main_menu(message.from_user.id)
         )
 
