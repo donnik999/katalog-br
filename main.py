@@ -269,18 +269,18 @@ async def top_cmd(message: types.Message):
         await message.answer("Пока никто не набрал баллы. Будь первым!", reply_markup=main_menu(message.from_user.id))
         return
     top = sorted(
-    ((uid, sc) for uid, sc in user_scores.items() if uid != "user_info"),
-    key=lambda x: x[1], reverse=True
-)[:10]
-text = TOP_HEADER
-user_infos = user_scores.get("user_info", {})
-for i, (uid, score) in enumerate(top, 1):
-    info = user_infos.get(uid, {})
-    first_name = info.get("first_name", "—")
-    username = info.get("username")
-    username_str = f"@{username}" if username else "—"
-    text += f"{i}) <b>{first_name}</b> [{username_str}] (<code>{uid}</code>) — <b>{score}⭐</b>\n"
-await message.answer(text, reply_markup=main_menu(message.from_user.id))
+        ((uid, sc) for uid, sc in user_scores.items() if uid != "user_info"),
+        key=lambda x: x[1], reverse=True
+    )[:10]
+    text = TOP_HEADER
+    user_infos = user_scores.get("user_info", {})
+    for i, (uid, score) in enumerate(top, 1):
+        info = user_infos.get(uid, {})
+        first_name = info.get("first_name", "—")
+        username = info.get("username")
+        username_str = f"@{username}" if username else "—"
+        text += f"{i}) <b>{first_name}</b> [{username_str}] (<code>{uid}</code>) — <b>{score}⭐</b>\n"
+    await message.answer(text, reply_markup=main_menu(message.from_user.id))
 
 @dp.message(F.text == "📚 Разделы")
 async def sections_cmd(message: types.Message, state: FSMContext):
