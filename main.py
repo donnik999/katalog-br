@@ -250,14 +250,12 @@ async def profile_cmd(message: types.Message):
     )
     place = next((i+1 for i, (uid, _) in enumerate(sorted_scores) if uid == user_id), "-")
     user_info = user_scores.get("user_info", {}).get(user_id, {})
-    first_name = user_info.get("first_name", "—")
-    username = user_info.get("username")
+    username = user_info.get("username") or message.from_user.username
     username_str = f"@{username}" if username else "—"
     text = (
         f"👤 <b>Твой профиль</b>\n"
-        f"┏ ID: <code>{user_id}</code>\n"
-        f"┣ Имя: <b>{first_name}</b>\n"
-        f"┣ TG ник: <b>{username_str}</b>\n"
+        f"┏ Telegram: <b>{username_str}</b>\n"
+        f"┣ ID: <code>{user_id}</code>\n"
         f"┣ Баллы: <b>{score}</b> ⭐\n"
         f"┗ Место в топе: <b>{place}</b> 🏆"
     )
@@ -276,10 +274,9 @@ async def top_cmd(message: types.Message):
     user_infos = user_scores.get("user_info", {})
     for i, (uid, score) in enumerate(top, 1):
         info = user_infos.get(uid, {})
-        first_name = info.get("first_name", "—")
         username = info.get("username")
         username_str = f"@{username}" if username else "—"
-        text += f"{i}) <b>{first_name}</b> [{username_str}] (<code>{uid}</code>) — <b>{score}⭐</b>\n"
+        text += f"{i}) {username_str} (<code>{uid}</code>) — <b>{score}⭐</b>\n"
     await message.answer(text, reply_markup=main_menu(message.from_user.id))
     
 @dp.message(F.text == "📚 Разделы")
