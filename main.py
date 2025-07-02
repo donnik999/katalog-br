@@ -303,6 +303,7 @@ def admin_menu():
     kb = [
         [types.KeyboardButton(text="📢 Оповестить пользователей")],
         [types.KeyboardButton(text="🖼 Добавить фото к описанию")],
+        [types.KeyboardButton(text="💾 Сохранить данные")],
         [types.KeyboardButton(text="⬅️ В главное меню")]
     ]
     return types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
@@ -544,6 +545,14 @@ async def handle_photo(message: types.Message, state: FSMContext):
 @dp.message(QuizStates.waiting_photo)
 async def handle_non_photo(message: types.Message, state: FSMContext):
     await message.answer("Пожалуйста, отправьте именно фото.")
+
+@dp.message(F.text == "💾 Сохранить данные")
+async def save_data_admin(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    save_data()
+    await message.answer("Данные пользователей успешно сохранены!", reply_markup=admin_menu())
 
 async def main():
     await dp.start_polling(bot)
