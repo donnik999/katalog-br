@@ -177,8 +177,8 @@ bot = Bot(token=TOKEN, parse_mode="HTML")
 dp = Dispatcher()
 
 # --- START и МЕНЮ ---
-@dp.message(Command("start", "menu"))
-async def start(message: types.Message, state: FSMContext):
+@dp.message(Command("start"))
+async def start_cmd(message: types.Message, state: FSMContext):
     photo_id = load_photo_id()
     await state.clear()
     if photo_id:
@@ -186,8 +186,8 @@ async def start(message: types.Message, state: FSMContext):
     else:
         await message.answer(WELCOME_TEXT, reply_markup=main_menu())
 
-@dp.message(lambda m: m.text == "🏠 В главное меню")
-async def main_menu_cmd(message: types.Message, state: FSMContext):
+@dp.message(Command("menu"))
+async def menu_cmd(message: types.Message, state: FSMContext):
     photo_id = load_photo_id()
     await state.clear()
     if photo_id:
