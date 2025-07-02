@@ -417,7 +417,24 @@ async def process_answer(message: types.Message, state: FSMContext):
         await message.answer(f"❌ Неверно! Правильный ответ: <b>{correct}</b>")
     idx += 1
     await state.update_data(index=idx, score=score)
-    await ask_question(message, state)
+    if idx >= len(questions):
+        # Завершаем раздел прямо здесь!
+        uid = str(message.from_user.id)
+        user_scores[uid] = user_scores.get(uid, 0) + score
+        cooldowns = user_cooldowns.get(uid, {})
+        cooldowns[section] = datetime.utcnow()
+        user_cooldowns[uid] = cooldowns
+        active_users.add(uid)
+        save_data()
+        await message.answer(
+            f"✅ <b>Раздел \"{section}\" завершён!</b>\n"
+            f"Твои баллы: <b>{score} из {len(questions)}</b>\n\n"
+            f"Можешь попробовать другие разделы или посмотреть свой результат в топе.",
+            reply_markup=main_menu(message.from_user.id)
+        )
+        await state.clear()
+    else:
+        await ask_question(message, state)
 
 @dp.message(F.text == "🏆 Топ 10 игроков")
 async def show_top(message: types.Message, state: FSMContext):
