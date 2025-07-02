@@ -244,9 +244,23 @@ async def help_cmd(message: types.Message):
 async def profile_cmd(message: types.Message):
     user_id = str(message.from_user.id)
     score = user_scores.get(user_id, 0)
-    sorted_scores = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)
+    sorted_scores = sorted(
+        ((uid, sc) for uid, sc in user_scores.items() if uid != "user_info"),
+        key=lambda x: x[1], reverse=True
+    )
     place = next((i+1 for i, (uid, _) in enumerate(sorted_scores) if uid == user_id), "-")
-    text = PROFILE_TEMPLATE.format(user_id=user_id, score=score, place=place)
+    user_info = user_scores.get("user_info", {}).get(user_id, {})
+    first_name = user_info.get("first_name", "—")
+    username = user_info.get("username")
+    username_str = f"@{username}" if username else "—"
+    text = (
+        f"👤 <b>Твой профиль</b>\n"
+        f"┏ ID: <code>{user_id}</code>\n"
+        f"┣ Имя: <b>{first_name}</b>\n"
+        f"┣ Ник: <b>{username_str}</b>\n"
+        f"┣ Баллы: <b>{score}</b> ⭐\n"
+        f"┗ Место в топе: <b>{place}</b> 🏆"
+    )
     await message.answer(text, reply_markup=main_menu(message.from_user.id))
 
 @dp.message(F.text == "🏆 Топ")
@@ -254,11 +268,19 @@ async def top_cmd(message: types.Message):
     if not user_scores:
         await message.answer("Пока никто не набрал баллы. Будь первым!", reply_markup=main_menu(message.from_user.id))
         return
-    top = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)[:10]
-    text = TOP_HEADER
-    for i, (uid, score) in enumerate(top, 1):
-        text += f"{i}) <code>{uid}</code> — <b>{score}⭐</b>\n"
-    await message.answer(text, reply_markup=main_menu(message.from_user.id))
+    top = sorted(
+    ((uid, sc) for uid, sc in user_scores.items() if uid != "user_info"),
+    key=lambda x: x[1], reverse=True
+)[:10]
+text = TOP_HEADER
+user_infos = user_scores.get("user_info", {})
+for i, (uid, score) in enumerate(top, 1):
+    info = user_infos.get(uid, {})
+    first_name = info.get("first_name", "—")
+    username = info.get("username")
+    username_str = f"@{username}" if username else "—"
+    text += f"{i}) <b>{first_name}</b> [{username_str}] (<code>{uid}</code>) — <b>{score}⭐</b>\n"
+await message.answer(text, reply_markup=main_menu(message.from_user.id))
 
 @dp.message(F.text == "📚 Разделы")
 async def sections_cmd(message: types.Message, state: FSMContext):
@@ -336,6 +358,12 @@ async def continue_after_wrong(message: types.Message, state: FSMContext):
     else:
         user_id = str(message.from_user.id)
         user_scores[user_id] = user_scores.get(user_id, 0) + score
+        if "user_info" not in user_scores:
+            user_scores["user_info"] = {}
+        user_scores["user_info"][user_id] = {
+            "first_name": message.from_user.first_name,
+            "username": message.from_user.username
+        }
         cd_until = (datetime.now() + timedelta(seconds=COOLDOWN_SEC)).timestamp()
         user_cooldowns.setdefault(user_id, {})[sec_id] = cd_until
         save_scores()
