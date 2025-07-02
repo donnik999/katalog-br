@@ -1,16 +1,16 @@
 import os
 import json
-from aiogram.enums import ParseMode
-from aiogram.client.default import DefaultBotProperties
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime, timedelta
+from aiogram.enums import ParseMode
+from aiogram.client.default import DefaultBotProperties
 
 TOKEN = "7220830808:AAE7R_edzGpvUNboGOthydsT9m81TIfiqzU"
-ADMIN_ID = 6712617550
+ADMIN_ID = 6712617550  # <-- Замените на ваш id, если нужно (например, на 6712617550)
 DATA_FILE = "user_scores.json"
 PHOTO_ID_FILE = "welcome_photo_id.json"
 COOLDOWN_SEC = 3600  # 1 час
@@ -119,16 +119,17 @@ def load_photo_id():
         print(f"Ошибка загрузки welcome_photo_id.json: {e}")
     return None
 
-def main_menu():
+def main_menu(user_id=None):
     kb = [
         [KeyboardButton(text="📚 Разделы")],
         [KeyboardButton(text="👤 Профиль"), KeyboardButton(text="🏆 Топ")],
-        [KeyboardButton(text="ℹ️ Помощь")],
-        [KeyboardButton(text="🖼 Изменить фотографию приветствия")] if ADMIN_ID else [],
-        [KeyboardButton(text="👑 Админ-меню")] if ADMIN_ID else [],
-        [KeyboardButton(text="🏠 В главное меню")]
+        [KeyboardButton(text="ℹ️ Помощь")]
     ]
-    return ReplyKeyboardMarkup(keyboard=[row for row in kb if row], resize_keyboard=True)
+    if user_id == ADMIN_ID:
+        kb.append([KeyboardButton(text="🖼 Изменить фотографию приветствия")])
+        kb.append([KeyboardButton(text="👑 Админ-меню")])
+    kb.append([KeyboardButton(text="🏠 В главное меню")])
+    return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
 def sections_menu():
     kb = []
@@ -161,9 +162,9 @@ def author_inline():
     )
 
 bot = Bot(
-     token=TOKEN,
+    token=TOKEN,
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)
- )
+)
 dp = Dispatcher()
 
 @dp.message(Command("start"))
@@ -171,32 +172,32 @@ async def start_cmd(message: types.Message, state: FSMContext):
     photo_id = load_photo_id()
     await state.clear()
     if photo_id:
-        await message.answer_photo(photo_id, caption=WELCOME_TEXT, reply_markup=main_menu())
+        await message.answer_photo(photo_id, caption=WELCOME_TEXT, reply_markup=main_menu(message.from_user.id))
     else:
-        await message.answer(WELCOME_TEXT, reply_markup=main_menu())
+        await message.answer(WELCOME_TEXT, reply_markup=main_menu(message.from_user.id))
 
 @dp.message(Command("menu"))
 async def menu_cmd(message: types.Message, state: FSMContext):
     photo_id = load_photo_id()
     await state.clear()
     if photo_id:
-        await message.answer_photo(photo_id, caption="🏠 <b>Главное меню</b>", reply_markup=main_menu())
+        await message.answer_photo(photo_id, caption="🏠 <b>Главное меню</b>", reply_markup=main_menu(message.from_user.id))
     else:
-        await message.answer("🏠 <b>Главное меню</b>", reply_markup=main_menu())
+        await message.answer("🏠 <b>Главное меню</b>", reply_markup=main_menu(message.from_user.id))
 
 @dp.message(F.text == "🏠 В главное меню")
 async def main_menu_cmd(message: types.Message, state: FSMContext):
     photo_id = load_photo_id()
     await state.clear()
     if photo_id:
-        await message.answer_photo(photo_id, caption="🏠 <b>Главное меню</b>", reply_markup=main_menu())
+        await message.answer_photo(photo_id, caption="🏠 <b>Главное меню</b>", reply_markup=main_menu(message.from_user.id))
     else:
-        await message.answer("🏠 <b>Главное меню</b>", reply_markup=main_menu())
+        await message.answer("🏠 <b>Главное меню</b>", reply_markup=main_menu(message.from_user.id))
 
 @dp.message(F.text == "ℹ️ Помощь")
 async def help_cmd(message: types.Message):
     await message.answer(HELP_TEXT, reply_markup=author_inline(), disable_web_page_preview=True)
-    
+
 @dp.message(F.text == "👤 Профиль")
 async def profile_cmd(message: types.Message):
     user_id = str(message.from_user.id)
@@ -204,18 +205,18 @@ async def profile_cmd(message: types.Message):
     sorted_scores = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)
     place = next((i+1 for i, (uid, _) in enumerate(sorted_scores) if uid == user_id), "-")
     text = PROFILE_TEMPLATE.format(user_id=user_id, score=score, place=place)
-    await message.answer(text, reply_markup=main_menu())
+    await message.answer(text, reply_markup=main_menu(message.from_user.id))
 
 @dp.message(F.text == "🏆 Топ")
 async def top_cmd(message: types.Message):
     if not user_scores:
-        await message.answer("Пока никто не набрал баллы. Будь первым!", reply_markup=main_menu())
+        await message.answer("Пока никто не набрал баллы. Будь первым!", reply_markup=main_menu(message.from_user.id))
         return
     top = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)[:10]
     text = TOP_HEADER
     for i, (uid, score) in enumerate(top, 1):
         text += f"{i}) <code>{uid}</code> — <b>{score}⭐</b>\n"
-    await message.answer(text, reply_markup=main_menu())
+    await message.answer(text, reply_markup=main_menu(message.from_user.id))
 
 @dp.message(F.text == "📚 Разделы")
 async def sections_cmd(message: types.Message, state: FSMContext):
@@ -231,18 +232,18 @@ async def start_section(message: types.Message, state: FSMContext):
             section = sec
             break
     else:
-        await message.answer("Раздел не найден.", reply_markup=main_menu())
+        await message.answer("Раздел не найден.", reply_markup=main_menu(message.from_user.id))
         return
     sid = section["id"]
     now = datetime.now().timestamp()
     user_cd = user_cooldowns.get(user_id, {})
     if not isinstance(user_cd, dict):
         user_cd = {}
-        user_cooldowns[user_id] = {} 
+        user_cooldowns[user_id] = {}
     cd = user_cd.get(sid, 0)
     if now < cd:
         left = int(cd - now)
-        await message.answer(f"⏳ На этот раздел действует кулдаун! Повторно можно через {left//60} мин {left%60} сек.", reply_markup=main_menu())
+        await message.answer(f"⏳ На этот раздел действует кулдаун! Повторно можно через {left//60} мин {left%60} сек.", reply_markup=main_menu(message.from_user.id))
         return
     await state.set_state(Quiz.question)
     await state.update_data(sec_id=sid, q_idx=0, score=0, wrong=False)
@@ -298,7 +299,7 @@ async def continue_after_wrong(message: types.Message, state: FSMContext):
             f"🎉 <b>Тест окончен!</b>\nТы набрал: <b>{score} из {len(questions)}</b> за этот раздел.\n"
             f"Твой общий счёт: <b>{user_scores[user_id]}⭐</b>\n\n"
             f"⏳ На этот раздел наложен кулдаун: <b>{COOLDOWN_SEC//60} минут</b>.",
-            reply_markup=main_menu()
+            reply_markup=main_menu(message.from_user.id)
         )
         await state.clear()
 
@@ -319,7 +320,7 @@ async def handle_photo(message: types.Message, state: FSMContext):
     save_photo_id(photo_id)
     await state.clear()
     await message.answer("Фото приветствия успешно обновлено и будет использоваться при /start и в меню.")
-    await message.answer_photo(photo_id, caption="Вот как оно будет выглядеть!", reply_markup=main_menu())
+    await message.answer_photo(photo_id, caption="Вот как оно будет выглядеть!", reply_markup=main_menu(message.from_user.id))
 
 @dp.message(Quiz.waiting_photo)
 async def handle_photo_fail(message: types.Message, state: FSMContext):
