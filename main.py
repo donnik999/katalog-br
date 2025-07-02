@@ -1,5 +1,7 @@
 import asyncio
 import os
+print("Текущая рабочая директория:", os.getcwd())
+print("Файлы в директории:", os.listdir())
 import shutil
 import json
 import datetime
@@ -23,6 +25,7 @@ def load_data():
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r") as f:
+                print("Содержимое data.json после сохранения:", f.read())
                 data = json.load(f)
                 user_scores = data.get("user_scores", {})
                 # Преобразуем строки обратно в datetime
@@ -70,6 +73,8 @@ def save_data():
         "active_users": list(active_users),
     }
     if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            print("Содержимое data.json при загрузке:", f.read())
         shutil.copy(DATA_FILE, DATA_FILE + ".bak")
     tmp_file = DATA_FILE + ".tmp"
     with open(tmp_file, "w") as f:
