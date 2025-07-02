@@ -8,6 +8,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from datetime import datetime, timedelta
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
+import random
 
 TOKEN = "7220830808:AAE7R_edzGpvUNboGOthydsT9m81TIfiqzU"
 ADMIN_ID = 6712617550  # <-- Замените на ваш id, если нужно (например, на 6712617550)
@@ -288,15 +289,18 @@ async def start_section(message: types.Message, state: FSMContext):
         return
     await state.set_state(Quiz.question)
     await state.update_data(sec_id=sid, q_idx=0, score=0, wrong=False)
-    q = section["questions"][0]
-    await message.answer(f"<b>Вопрос 1/{len(section['questions'])}:</b>\n{q['question']}", reply_markup=question_kb(q["options"]))
+    questions = section["questions"][:]
+    random.shuffle(questions)
+    await state.set_state(Quiz.question)
+    await state.update_data(sec_id=sid, questions=questions, q_idx=0, score=0, wrong=False)
+    q = questions[0]
+    await message.answer(f"<b>Вопрос 1/{len(questions)}:</b>\n{q['question']}", reply_markup=question_kb(q["options"]))
 
 @dp.message(Quiz.question)
 async def process_answer(message: types.Message, state: FSMContext):
     data = await state.get_data()
     sec_id = data["sec_id"]
-    section = next(sec for sec in SECTIONS if sec["id"] == sec_id)
-    questions = section["questions"]
+    questions = data["questions"]
     q_idx = data["q_idx"]
     score = data["score"]
     q = questions[q_idx]
@@ -321,8 +325,7 @@ async def continue_after_wrong(message: types.Message, state: FSMContext):
         return
     data = await state.get_data()
     sec_id = data["sec_id"]
-    section = next(sec for sec in SECTIONS if sec["id"] == sec_id)
-    questions = section["questions"]
+    questions = data["questions"]
     q_idx = data["q_idx"] + 1
     score = data["score"]
     if q_idx < len(questions):
