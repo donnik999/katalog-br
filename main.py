@@ -190,8 +190,8 @@ async def main_menu_cmd(message: types.Message, state: FSMContext):
 
 @dp.message(F.text == "ℹ️ Помощь")
 async def help_cmd(message: types.Message):
-    await message.answer(HELP_TEXT, reply_markup=main_menu(), disable_web_page_preview=True, reply_markup=author_inline())
-
+    await message.answer(HELP_TEXT, reply_markup=author_inline(), disable_web_page_preview=True)
+    
 @dp.message(F.text == "👤 Профиль")
 async def profile_cmd(message: types.Message):
     user_id = str(message.from_user.id)
@@ -231,6 +231,9 @@ async def start_section(message: types.Message, state: FSMContext):
     sid = section["id"]
     now = datetime.now().timestamp()
     user_cd = user_cooldowns.get(user_id, {})
+    if not isinstance(user_cd, dict):
+        user_cd = {}
+        user_cooldowns[user_id] = {} 
     cd = user_cd.get(sid, 0)
     if now < cd:
         left = int(cd - now)
