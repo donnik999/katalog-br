@@ -1,26 +1,24 @@
 import os
 import json
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, FSInputFile, InputFile, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime, timedelta
 
 TOKEN = "7220830808:AAE7R_edzGpvUNboGOthydsT9m81TIfiqzU"
 ADMIN_ID = 6712617550
 DATA_FILE = "user_scores.json"
 PHOTO_ID_FILE = "welcome_photo_id.json"
-COOLDOWN_SEC = 300  # 5 минут
+COOLDOWN_SEC = 3600  # 1 час
 
-# --- ЭМОДЗИ РАЗДЕЛОВ (можно менять) ---
 SECTION_EMOJIS = {
     "common": "❓",
     "numbers": "🔢"
 }
 DEFAULT_SECTION_EMOJI = "📦"
 
-# --- ВОПРОСЫ ПО РАЗДЕЛАМ ---
 SECTIONS = [
     {
         "title": "Общие вопросы",
@@ -35,11 +33,6 @@ SECTIONS = [
                 "question": "2 + 2 = ?",
                 "options": ["3", "4", "5", "22"],
                 "answer": 1
-            },
-            {
-                "question": "Python — это?",
-                "options": ["Язык программирования", "Река", "Птица", "Город"],
-                "answer": 0
             }
         ]
     },
@@ -51,15 +44,9 @@ SECTIONS = [
                 "question": "5 * 6 = ?",
                 "options": ["11", "30", "56", "26"],
                 "answer": 1
-            },
-            {
-                "question": "7 + 8 = ?",
-                "options": ["15", "16", "14", "13"],
-                "answer": 0
             }
         ]
     }
-    # Добавляй новые разделы, указывай эмодзи в SECTION_EMOJIS!
 ]
 
 HELP_TEXT = (
@@ -88,17 +75,15 @@ PROFILE_TEMPLATE = (
 
 TOP_HEADER = "🏆 <b>Топ-10 игроков Black Russia:</b>\n"
 
-# --- FSM СОСТОЯНИЯ ---
 class Quiz(StatesGroup):
     section = State()
     question = State()
     waiting_continue = State()
+    waiting_photo = State()
 
-# --- ГЛОБАЛЬНЫЕ ДАННЫЕ ---
 user_scores = {}
-user_cooldowns = {}  # {user_id: {section_id: timestamp}}
+user_cooldowns = {}
 
-# --- СОХРАНЕНИЕ/ЗАГРУЗКА ---
 def load_scores():
     global user_scores, user_cooldowns
     if os.path.exists(DATA_FILE):
@@ -123,23 +108,24 @@ def save_photo_id(photo_id):
         json.dump({"photo_id": photo_id}, f)
 
 def load_photo_id():
-    if os.path.exists(PHOTO_ID_FILE):
-        with open(PHOTO_ID_FILE, 'r', encoding="utf-8") as f:
-            d = json.load(f)
-            return d.get("photo_id")  # безопасно!
+    try:
+        if os.path.exists(PHOTO_ID_FILE):
+            with open(PHOTO_ID_FILE, 'r', encoding="utf-8") as f:
+                d = json.load(f)
+                return d.get("photo_id")
+    except Exception as e:
+        print(f"Ошибка загрузки welcome_photo_id.json: {e}")
     return None
 
-# --- КНОПКИ ---
 def main_menu():
     kb = [
         [KeyboardButton(text="📚 Разделы")],
         [KeyboardButton(text="👤 Профиль"), KeyboardButton(text="🏆 Топ")],
         [KeyboardButton(text="ℹ️ Помощь")],
         [KeyboardButton(text="🖼 Изменить фотографию приветствия")] if ADMIN_ID else [],
+        [KeyboardButton(text="👑 Админ-меню")] if ADMIN_ID else [],
+        [KeyboardButton(text="🏠 В главное меню")]
     ]
-    if ADMIN_ID:
-        kb.append([KeyboardButton(text="👑 Админ-меню")])
-    kb.append([KeyboardButton(text="🏠 В главное меню")])
     return ReplyKeyboardMarkup(keyboard=[row for row in kb if row], resize_keyboard=True)
 
 def sections_menu():
@@ -172,11 +158,9 @@ def author_inline():
         ]
     )
 
-# --- БОТ ---
 bot = Bot(token=TOKEN, parse_mode="HTML")
 dp = Dispatcher()
 
-# --- START и МЕНЮ ---
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message, state: FSMContext):
     photo_id = load_photo_id()
@@ -195,13 +179,20 @@ async def menu_cmd(message: types.Message, state: FSMContext):
     else:
         await message.answer("🏠 <b>Главное меню</b>", reply_markup=main_menu())
 
-# --- ПОМОЩЬ ---
-@dp.message(lambda m: m.text == "ℹ️ Помощь")
-async def help_cmd(message: types.Message):
-    await message.answer(HELP_TEXT, reply_markup=main_menu(), disable_web_page_preview=True, reply_markup_markup=author_inline())
+@dp.message(F.text == "🏠 В главное меню")
+async def main_menu_cmd(message: types.Message, state: FSMContext):
+    photo_id = load_photo_id()
+    await state.clear()
+    if photo_id:
+        await message.answer_photo(photo_id, caption="🏠 <b>Главное меню</b>", reply_markup=main_menu())
+    else:
+        await message.answer("🏠 <b>Главное меню</b>", reply_markup=main_menu())
 
-# --- ПРОФИЛЬ ---
-@dp.message(lambda m: m.text == "👤 Профиль")
+@dp.message(F.text == "ℹ️ Помощь")
+async def help_cmd(message: types.Message):
+    await message.answer(HELP_TEXT, reply_markup=main_menu(), disable_web_page_preview=True, reply_markup=author_inline())
+
+@dp.message(F.text == "👤 Профиль")
 async def profile_cmd(message: types.Message):
     user_id = str(message.from_user.id)
     score = user_scores.get(user_id, 0)
@@ -210,8 +201,7 @@ async def profile_cmd(message: types.Message):
     text = PROFILE_TEMPLATE.format(user_id=user_id, score=score, place=place)
     await message.answer(text, reply_markup=main_menu())
 
-# --- ТОП ---
-@dp.message(lambda m: m.text == "🏆 Топ")
+@dp.message(F.text == "🏆 Топ")
 async def top_cmd(message: types.Message):
     if not user_scores:
         await message.answer("Пока никто не набрал баллы. Будь первым!", reply_markup=main_menu())
@@ -222,8 +212,7 @@ async def top_cmd(message: types.Message):
         text += f"{i}) <code>{uid}</code> — <b>{score}⭐</b>\n"
     await message.answer(text, reply_markup=main_menu())
 
-# --- РАЗДЕЛЫ ---
-@dp.message(lambda m: m.text == "📚 Разделы")
+@dp.message(F.text == "📚 Разделы")
 async def sections_cmd(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Выбери раздел:", reply_markup=sections_menu())
@@ -305,49 +294,64 @@ async def continue_after_wrong(message: types.Message, state: FSMContext):
         )
         await state.clear()
 
-# --- АДМИН ---
-@dp.message(lambda m: m.text == "👑 Админ-меню" and m.from_user.id == ADMIN_ID)
-async def admin_menu_cmd(message: types.Message):
-    await message.answer("👑 <b>Админ-меню</b>\nВыберите действие:", reply_markup=admin_menu())
-
-@dp.message(lambda m: m.text == "💾 Сохранить данные" and m.from_user.id == ADMIN_ID)
-async def admin_save(message: types.Message):
-    save_scores()
-    await message.answer("✅ Данные успешно сохранены.", reply_markup=admin_menu())
-
-@dp.message(lambda m: m.text == "📝 Показать топ" and m.from_user.id == ADMIN_ID)
-async def admin_show(message: types.Message):
-    await top_cmd(message)
-
-@dp.message(lambda m: m.text == "🧹 Сбросить топ" and m.from_user.id == ADMIN_ID)
-async def admin_reset(message: types.Message):
-    global user_scores
-    user_scores = {}
-    save_scores()
-    await message.answer("Топ сброшен.", reply_markup=admin_menu())
-
-# --- СМЕНА ФОТО ПРИВЕТСТВИЯ ---
-@dp.message(lambda m: m.text == "🖼 Изменить фотографию приветствия" and m.from_user.id == ADMIN_ID)
+@dp.message(F.text == "🖼 Изменить фотографию приветствия")
 async def change_photo_command(message: types.Message, state: FSMContext):
-    await state.set_state(Quiz.section)
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    await state.set_state(Quiz.waiting_photo)
     await message.answer("Отправь новое фото для приветствия:")
 
-@dp.message(Quiz.section)
+@dp.message(Quiz.waiting_photo, F.photo)
 async def handle_photo(message: types.Message, state: FSMContext):
-    if not message.photo:
-        await message.answer("Пожалуйста, отправь именно фото!")
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
         return
     photo_id = message.photo[-1].file_id
     save_photo_id(photo_id)
     await message.answer_photo(photo_id, caption="Фото приветствия успешно обновлено!", reply_markup=main_menu())
     await state.clear()
 
-# --- ОБРАБОТЧИК ВСЕГО ПРОЧЕГО ---
+@dp.message(Quiz.waiting_photo)
+async def handle_photo_fail(message: types.Message, state: FSMContext):
+    await message.answer("Пожалуйста, отправь именно фото!")
+
+@dp.message(F.text == "👑 Админ-меню")
+async def admin_menu_cmd(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    await message.answer("👑 <b>Админ-меню</b>\nВыберите действие:", reply_markup=admin_menu())
+
+@dp.message(F.text == "💾 Сохранить данные")
+async def admin_save(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    save_scores()
+    await message.answer("✅ Данные успешно сохранены.", reply_markup=admin_menu())
+
+@dp.message(F.text == "📝 Показать топ")
+async def admin_show(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    await top_cmd(message)
+
+@dp.message(F.text == "🧹 Сбросить топ")
+async def admin_reset(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    global user_scores
+    user_scores = {}
+    save_scores()
+    await message.answer("Топ сброшен.", reply_markup=admin_menu())
+
 @dp.message()
 async def fallback(message: types.Message):
     await message.answer("Не понял команду. Жми '🏠 В главное меню' или /menu.")
 
-# --- ЗАГРУЗКА ПРИ СТАРТЕ ---
 load_scores()
 
 if __name__ == "__main__":
