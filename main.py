@@ -297,13 +297,16 @@ async def continue_after_wrong(message: types.Message, state: FSMContext):
         )
         await state.clear()
 
-@dp.message(F.text == "🖼 Изменить фотографию приветствия")
-async def change_photo_command(message: types.Message, state: FSMContext):
+@dp.message(Quiz.waiting_photo, F.photo)
+async def handle_photo(message: types.Message, state: FSMContext):
     if message.from_user.id != ADMIN_ID:
         await message.answer("Нет доступа.")
         return
-    await state.set_state(Quiz.waiting_photo)
-    await message.answer("Отправь новое фото для приветствия:")
+    photo_id = message.photo[-1].file_id
+    save_photo_id(photo_id)
+    await state.clear()
+    await message.answer("Фото приветствия успешно обновлено и будет использоваться при /start и в меню.")
+    await message.answer_photo(photo_id, caption="Вот как оно будет выглядеть!", reply_markup=main_menu())
 
 @dp.message(Quiz.waiting_photo, F.photo)
 async def handle_photo(message: types.Message, state: FSMContext):
