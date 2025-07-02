@@ -1,8 +1,8 @@
 import asyncio
 import os
-import datetime
 import shutil
 import json
+import datetime
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
@@ -19,14 +19,13 @@ PHOTO_FILE = "welcome_photo_id.json"
 DATA_FILE = "data.json" 
 
 def load_data():
-    def load_data():
     global user_scores, user_cooldowns, active_users
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r") as f:
                 data = json.load(f)
                 user_scores = data.get("user_scores", {})
-                # Преобразуем обратно строки в datetime
+                # Преобразуем строки обратно в datetime
                 user_cooldowns = {
                     uid: {sec: datetime.datetime.fromisoformat(dt) for sec, dt in cooldowns.items()}
                     for uid, cooldowns in data.get("user_cooldowns", {}).items()
@@ -41,10 +40,13 @@ def load_data():
                     with open(backup, "r") as f:
                         data = json.load(f)
                         user_scores = data.get("user_scores", {})
-                        user_cooldowns = data.get("user_cooldowns", {})
+                        user_cooldowns = {
+                            uid: {sec: datetime.datetime.fromisoformat(dt) for sec, dt in cooldowns.items()}
+                            for uid, cooldowns in data.get("user_cooldowns", {}).items()
+                        }
                         active_users = set(data.get("active_users", []))
-                        print("Восстановлено из резервной копии!")
-                        return
+                    print("Восстановлено из резервной копии!")
+                    return
                 except Exception as e2:
                     print("Ошибка чтения резервной копии:", e2)
             # Если не удалось — сбрасываем данные
@@ -57,7 +59,7 @@ def load_data():
         active_users = set()
 
 def save_data():
-    # Преобразуем datetime в строки
+    # сериализуем datetime в строки
     cooldowns_serializable = {
         uid: {sec: dt.isoformat() for sec, dt in cooldowns.items()}
         for uid, cooldowns in user_cooldowns.items()
