@@ -316,6 +316,7 @@ def admin_menu():
         [types.KeyboardButton(text="📢 Оповестить пользователей")],
         [types.KeyboardButton(text="🖼 Добавить фото к описанию")],
         [types.KeyboardButton(text="💾 Сохранить данные")],
+        [types.KeyboardButton(text="📝 Показать данные")],
         [types.KeyboardButton(text="⬅️ В главное меню")]
     ]
     return types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
@@ -569,5 +570,13 @@ async def save_data_admin(message: types.Message, state: FSMContext):
 async def main():
     await dp.start_polling(bot)
 
+@dp.message(F.text == "📝 Показать данные")
+async def show_data_admin(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    import json
+    await message.answer(f"<code>{json.dumps(user_scores, indent=2, ensure_ascii=False)}</code>")
+    
 if __name__ == "__main__":
     asyncio.run(main())
