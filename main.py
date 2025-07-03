@@ -19,7 +19,7 @@ COOLDOWN_SEC = 300  # 5 минут
 
 CATEGORY_SECTIONS = {
     "Для ОПГ": [
-        {"id": "bizwar", "title": "Вопросы по Бизвару"},
+        {"id": "bizwar", "title": "Правила войны за бизнес (БизВар)},
         {"id": "numbers", "title": "Вопросы по теме 2"},
     ],
     "Для Госс": [
@@ -29,18 +29,12 @@ CATEGORY_SECTIONS = {
 }
 
 SECTION_EMOJIS = {
-    "opg1": "🔫",
-    "opg2": "💼",
+    "bizwar": "🔫",
+    "numbers": "💼",
     "goss1": "🏛",
     "goss2": "📄",
 }
 DEFAULT_SECTION_EMOJI = "📚"
-
-SECTION_EMOJIS = {
-    "bizwar": "⚔️",
-    "numbers": "🔢"
-}
-DEFAULT_SECTION_EMOJI = "📦"
 
 SECTIONS = [
     {
@@ -101,7 +95,7 @@ SECTIONS = [
         ]
     },
     {
-        "title": "",
+        "title": "Номера",
         "id": "numbers",
         "questions": [
             {
