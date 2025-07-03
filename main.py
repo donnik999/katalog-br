@@ -19,9 +19,12 @@ CATEGORY_EMOJIS = {
     "Для ОПГ": "🔪"
 }
 CATEGORY_SECTIONS = {
-    "Для ОПГ": ["bizwar","pohitil"]
+    "Для ОПГ": ["bizwar", "pohitil"]
 }
-SECTION_EMOJIS = {"bizwar": "💼"}, {"pohitil": "💰"}
+SECTION_EMOJIS = {
+    "bizwar": "💼",
+    "pohitil": "💰🥷"  # пример для нового раздела
+}
 DEFAULT_SECTION_EMOJI = "📚"
 
 SECTIONS = [
