@@ -18,14 +18,7 @@ PHOTO_ID_FILE = "welcome_photo_id.json"
 COOLDOWN_SEC = 300  # 5 минут
 
 CATEGORY_SECTIONS = {
-    "Для ОПГ": [
-        {"id": "bizwar", "title": "Правила войны за бизнес (БизВар)},
-        {"id": "numbers", "title": "Вопросы по теме 2"},
-    ],
-    "Для Госс": [
-        {"id": "goss1", "title": "Госслужба"},
-        {"id": "goss2", "title": "Другие вопросы"},
-    ],
+    "Для ОПГ": ["bizwar", "numbers"], 
 }
 
 SECTION_EMOJIS = {
