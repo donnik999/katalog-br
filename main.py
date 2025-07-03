@@ -1,5 +1,7 @@
 import os
 import json
+import time
+import random
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 from aiogram.filters import Command
@@ -9,11 +11,17 @@ from aiogram.fsm.context import FSMContext
 BOT_TOKEN = "7220830808:AAE7R_edzGpvUNboGOthydsT9m81TIfiqzU"
 ADMIN_ID = 6712617550  # Укажи свой id
 DATA_FILE = "data.json"
+PHOTO_ID_FILE = "welcome_photo_id.json"
+COOLDOWN_SECONDS = 5 * 60  # 5 минут
 
-# --- Категории и разделы ---
+CATEGORY_EMOJIS = {
+    "Для ОПГ": "🔫"
+}
 CATEGORY_SECTIONS = {
     "Для ОПГ": ["bizwar"]
 }
+SECTION_EMOJIS = {"bizwar": "💼"}
+DEFAULT_SECTION_EMOJI = "📚"
 
 SECTIONS = [
     {
@@ -74,33 +82,48 @@ SECTIONS = [
     }
 ]
 
-SECTION_EMOJIS = {"bizwar": "💼"}
-DEFAULT_SECTION_EMOJI = "📚"
-
-# --- FSM States ---
 class Quiz(StatesGroup):
     choosing_category = State()
     choosing_section = State()
     answering = State()
+    waiting_photo = State()
 
 user_scores = {}
-user_cooldowns = {}
+user_cooldowns = {}  # user_id: {section_id: last_time}
+user_random_questions = {}  # user_id: {section_id: [индексы вопросов в рандоме]}
 
-def load_scores():
+def load_data():
     global user_scores, user_cooldowns
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-            user_scores = data.get("scores", {})
-            user_cooldowns = data.get("cooldowns", {})
+            user_scores.update(data.get("scores", {}))
+            user_cooldowns.update(data.get("cooldowns", {}))
     else:
-        user_scores = {}
-        user_cooldowns = {}
+        user_scores.clear()
+        user_cooldowns.clear()
 
-def save_scores():
-    data = {"scores": user_scores, "cooldowns": user_cooldowns}
+def save_data():
+    data = {
+        "scores": user_scores,
+        "cooldowns": user_cooldowns
+    }
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+def save_photo_id(photo_id):
+    with open(PHOTO_ID_FILE, 'w', encoding="utf-8") as f:
+        json.dump({"photo_id": photo_id}, f)
+
+def load_photo_id():
+    try:
+        if os.path.exists(PHOTO_ID_FILE):
+            with open(PHOTO_ID_FILE, 'r', encoding="utf-8") as f:
+                d = json.load(f)
+                return d.get("photo_id")
+    except Exception:
+        pass
+    return None
 
 def main_menu(user_id=None):
     kb = [
@@ -109,12 +132,16 @@ def main_menu(user_id=None):
         [KeyboardButton(text="ℹ️ Помощь")]
     ]
     if user_id == ADMIN_ID:
+        kb.append([KeyboardButton(text="🖼 Изменить фотографию приветствия")])
         kb.append([KeyboardButton(text="👑 Админ-меню")])
     kb.append([KeyboardButton(text="🏠 В главное меню")])
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
 def categories_menu():
-    kb = [[KeyboardButton(text=cat)] for cat in CATEGORY_SECTIONS.keys()]
+    kb = [
+        [KeyboardButton(text=f"{CATEGORY_EMOJIS.get(cat, '')} {cat}".strip())]
+        for cat in CATEGORY_SECTIONS.keys()
+    ]
     kb.append([KeyboardButton(text="🏠 В главное меню")])
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
@@ -139,10 +166,23 @@ dp = Dispatcher()
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
-    await message.answer(
-        "<b>🎮 Добро пожаловать! Жми /menu или кнопку ниже для старта.</b>",
-        reply_markup=main_menu(message.from_user.id)
+    photo_id = load_photo_id()
+    caption = (
+        "<b>🎮 Добро пожаловать в викторину Black Russia!</b>\n"
+        "Выбирай раздел, отвечай на вопросы, зарабатывай баллы и попадай в топ!\n\n"
+        "Нажми кнопку или /menu для начала."
     )
+    if photo_id:
+        await message.answer_photo(
+            photo=photo_id,
+            caption=caption,
+            reply_markup=main_menu(message.from_user.id)
+        )
+    else:
+        await message.answer(
+            caption,
+            reply_markup=main_menu(message.from_user.id)
+        )
 
 @dp.message(Command("menu"))
 async def cmd_menu(message: types.Message, state: FSMContext):
@@ -166,7 +206,10 @@ async def choose_category(message: types.Message, state: FSMContext):
 
 @dp.message(Quiz.choosing_category)
 async def category_selected(message: types.Message, state: FSMContext):
-    category = message.text.strip()
+    category = message.text
+    for emoji in CATEGORY_EMOJIS.values():
+        category = category.replace(emoji, "")
+    category = category.strip()
     if category == "🏠 В главное меню":
         await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
         await state.clear()
@@ -185,27 +228,47 @@ async def category_selected(message: types.Message, state: FSMContext):
 async def section_selected(message: types.Message, state: FSMContext):
     data = await state.get_data()
     category = data.get("category")
-    if message.text == "⬅️ К категориям":
-        await state.set_state(Quiz.choosing_category)
-        await message.answer("Выберите категорию:", reply_markup=categories_menu())
-        return
-    if message.text == "🏠 В главное меню":
-        await state.clear()
-        await message.answer("Главное меню", reply_markup=main_menu(message.from_user.id))
-        return
-    # Убираем эмодзи
     section_title = message.text
     for emoji in SECTION_EMOJIS.values():
         section_title = section_title.replace(emoji, "")
     section_title = section_title.strip()
+    if section_title == "⬅️ К категориям":
+        await state.set_state(Quiz.choosing_category)
+        await message.answer("Выберите категорию:", reply_markup=categories_menu())
+        return
+    if section_title == "🏠 В главное меню":
+        await state.clear()
+        await message.answer("Главное меню", reply_markup=main_menu(message.from_user.id))
+        return
     section_ids = CATEGORY_SECTIONS[category]
     section = next((s for s in SECTIONS if s["id"] in section_ids and s["title"] == section_title), None)
     if not section:
         await message.answer("❌ Такого раздела нет.")
         return
-    await state.update_data(section_id=section["id"], q_index=0)
+
+    # КУЛДАУН!
+    user_id = str(message.from_user.id)
+    section_id = section["id"]
+    now = int(time.time())
+    last = int(user_cooldowns.get(user_id, {}).get(section_id, 0))
+    wait = COOLDOWN_SECONDS - (now - last)
+    if wait > 0:
+        await message.answer(f"⏳ Этот раздел можно проходить раз в 5 минут.\nПодождите еще {wait//60} мин {wait%60} сек.")
+        await state.clear()
+        return
+
+    # Рандомизация порядка вопросов
+    q_count = len(section["questions"])
+    question_order = list(range(q_count))
+    random.shuffle(question_order)
+    if user_id not in user_random_questions:
+        user_random_questions[user_id] = {}
+    user_random_questions[user_id][section_id] = question_order
+
+    await state.update_data(section_id=section_id, q_index=0)
     await state.set_state(Quiz.answering)
-    q = section["questions"][0]
+    first_q_idx = question_order[0]
+    q = section["questions"][first_q_idx]
     await message.answer(
         f"<b>{q['question']}</b>",
         reply_markup=question_kb(q["options"])
@@ -214,6 +277,7 @@ async def section_selected(message: types.Message, state: FSMContext):
 @dp.message(Quiz.answering)
 async def answer_handler(message: types.Message, state: FSMContext):
     data = await state.get_data()
+    user_id = str(message.from_user.id)
     section_id = data["section_id"]
     q_index = data["q_index"]
     section = next((s for s in SECTIONS if s["id"] == section_id), None)
@@ -221,28 +285,48 @@ async def answer_handler(message: types.Message, state: FSMContext):
         await message.answer("Ошибка раздела.")
         await state.clear()
         return
-    q = section["questions"][q_index]
+
+    question_order = user_random_questions.get(user_id, {}).get(section_id)
+    if not question_order or q_index >= len(question_order):
+        await message.answer("Ошибка вопросов. Начните раздел заново.")
+        await state.clear()
+        return
+
+    q_real_idx = question_order[q_index]
+    q = section["questions"][q_real_idx]
     answer = message.text.strip()
     correct = False
     try:
         correct = q["options"].index(answer) == q["answer"]
     except Exception:
         pass
+
     if correct:
-        await message.answer("✅ Верно!")
-        # Тут начисляй баллы, если нужно
+        user_scores[user_id] = user_scores.get(user_id, 0) + 1
+        save_data()
+        await message.answer("✅ Верно! +1 балл")
     else:
         await message.answer(f"❌ Неверно! Правильный ответ: {q['options'][q['answer']]}")
-    if q_index + 1 < len(section["questions"]):
-        await state.update_data(q_index=q_index + 1)
-        next_q = section["questions"][q_index + 1]
+    next_q_index = q_index + 1
+    if next_q_index < len(question_order):
+        await state.update_data(q_index=next_q_index)
+        next_q_real_idx = question_order[next_q_index]
+        next_q = section["questions"][next_q_real_idx]
         await message.answer(
             f"<b>{next_q['question']}</b>",
             reply_markup=question_kb(next_q["options"])
         )
     else:
-        await message.answer("Раздел пройден!", reply_markup=main_menu(message.from_user.id))
+        # выставляем кулдаун завершения раздела
+        now = int(time.time())
+        if user_id not in user_cooldowns:
+            user_cooldowns[user_id] = {}
+        user_cooldowns[user_id][section_id] = now
+        save_data()
+        await message.answer("Раздел пройден! Можно попытаться снова через 5 минут.", reply_markup=main_menu(message.from_user.id))
         await state.clear()
+        # очищаем порядок вопросов
+        user_random_questions[user_id].pop(section_id, None)
 
 @dp.message(F.text == "👤 Профиль")
 async def profile_cmd(message: types.Message):
@@ -266,11 +350,29 @@ async def top_cmd(message: types.Message):
         text += f"{i}) <code>{uid}</code> — <b>{score}⭐</b>\n"
     await message.answer(text, reply_markup=main_menu(message.from_user.id))
 
+@dp.message(F.text == "🖼 Изменить фотографию приветствия")
+async def change_photo_command(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    await state.set_state(Quiz.waiting_photo)
+    await message.answer("Отправь новое фото для приветствия:")
+
+@dp.message(Quiz.waiting_photo, F.photo)
+async def handle_photo(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    photo_id = message.photo[-1].file_id
+    save_photo_id(photo_id)
+    await state.clear()
+    await message.answer("Фото приветствия успешно обновлено!")
+
 @dp.message()
 async def fallback(message: types.Message):
     await message.answer("Не понял команду. Жми '🏠 В главное меню' или /menu.")
 
-load_scores()
+load_data()
 
 if __name__ == "__main__":
     import asyncio
