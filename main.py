@@ -190,20 +190,16 @@ def categories_menu():
 
 def sections_menu(category):
     kb = []
-    for sec in CATEGORY_SECTIONS[category]:
-        emoji = SECTION_EMOJIS.get(sec["id"], DEFAULT_SECTION_EMOJI)
-        kb.append([KeyboardButton(text=f"{emoji} {sec['title']}")])
+    section_ids = CATEGORY_SECTIONS[category]
+    for sec_id in section_ids:
+        section = next((s for s in SECTIONS if s["id"] == sec_id), None)
+        if section:
+            emoji = SECTION_EMOJIS.get(sec_id, DEFAULT_SECTION_EMOJI)
+            kb.append([KeyboardButton(text=f"{emoji} {section['title']}")])
     kb.append([KeyboardButton(text="⬅️ К категориям")])
     kb.append([KeyboardButton(text="🏠 В главное меню")])
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
-def sections_menu():
-    kb = []
-    for sec in SECTIONS:
-        emoji = SECTION_EMOJIS.get(sec['id'], DEFAULT_SECTION_EMOJI)
-        kb.append([KeyboardButton(text=f"{emoji} {sec['title']}")])
-    kb.append([KeyboardButton(text="🏠 В главное меню")])
-    return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
 def question_kb(options):
     return ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text=o)] for o in options], resize_keyboard=True)
