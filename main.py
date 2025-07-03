@@ -338,7 +338,7 @@ async def category_selected(message: types.Message, state: FSMContext):
         reply_markup=sections_menu(category)
     )
 
-@dp.message(QuizStates.choosing_section)
+@dp.message(Quiz.choosing_section)
 async def section_selected(message: types.Message, state: FSMContext):
     data = await state.get_data()
     category = data.get("category")
