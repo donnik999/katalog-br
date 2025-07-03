@@ -306,57 +306,29 @@ async def top_cmd(message: types.Message):
 @dp.message(F.text == "📚 Разделы")
 async def choose_category(message: types.Message, state: FSMContext):
     await state.set_state(Quiz.choosing_category)
-    await message.answer("<b>Выберите категорию:</b>", reply_markup=categories_menu())
+    await message.answer("Выберите категорию:", reply_markup=categories_menu())
 
 @dp.message(Quiz.choosing_category)
 async def category_selected(message: types.Message, state: FSMContext):
     category = message.text.strip()
-    if category == "🏠 В главное меню":
-        await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
-        await state.clear()
-        return
     if category not in CATEGORY_SECTIONS:
-        await message.answer("❌ Такой категории нет. Выберите категорию из списка.")
+        await message.answer("❌ Такой категории нет.")
         return
     await state.update_data(category=category)
     await state.set_state(Quiz.choosing_section)
-    await message.answer(
-        f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
-        reply_markup=sections_menu(category)
-    )
+    await message.answer("Выберите раздел:", reply_markup=sections_menu(category))
 
 @dp.message(Quiz.choosing_section)
 async def section_selected(message: types.Message, state: FSMContext):
     data = await state.get_data()
     category = data.get("category")
-    section_title = message.text.replace("📚", "").replace("🔫", "").replace("💼", "").replace("🏛", "").replace("📄", "").strip()
-    if message.text == "⬅️ К категориям":
-        await state.set_state(Quiz.choosing_category)
-        await message.answer("<b>Выберите категорию:</b>", reply_markup=categories_menu())
-        return
-    if message.text == "🏠 В главное меню":
-        await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
-        await state.clear()
-        return
-    if category not in CATEGORY_SECTIONS:
-        await message.answer("❌ Сначала выберите категорию.")
-        await state.set_state(Quiz.choosing_category)
-        await message.answer("<b>Выберите категорию:</b>", reply_markup=categories_menu())
-        return
-    # Найти раздел по названию
+    section_title = message.text.strip()  # Или парсь id, если выводишь id в кнопке!
     section_ids = CATEGORY_SECTIONS[category]
-    section = next(
-    (s for s in SECTIONS if s["id"] in section_ids and s["title"] == section_title),
-    None
-)
+    section = next((s for s in SECTIONS if s["id"] in section_ids and s["title"] == section_title), None)
     if not section:
-        await message.answer("❌ Такого раздела нет. Выберите из списка.")
+        await message.answer("❌ Такого раздела нет.")
         return
-    # Здесь логика запуска викторины для выбранного раздела
-    # Например:
-    # await start_quiz_for_section(section, message, state)
-    await message.answer(f"Вы выбрали раздел: {section['title']}. Тут будет запуск вопросов.")
-
+ 
 @dp.message(lambda m: m.text and any(m.text.startswith(SECTION_EMOJIS.get(sec['id'], DEFAULT_SECTION_EMOJI)) for sec in SECTIONS))
 async def start_section(message: types.Message, state: FSMContext):
     user_id = str(message.from_user.id)
