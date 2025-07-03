@@ -192,7 +192,7 @@ def sections_menu(category):
     kb = []
     section_ids = CATEGORY_SECTIONS[category]
     for sec_id in section_ids:
-        section = next((s for s in SECTIONS if s["id"] == sec_id), None)
+        section = SECTIONS.get(sec_id)
         if section:
             emoji = SECTION_EMOJIS.get(sec_id, DEFAULT_SECTION_EMOJI)
             kb.append([KeyboardButton(text=f"{emoji} {section['title']}")])
