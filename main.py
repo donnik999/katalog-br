@@ -315,15 +315,10 @@ async def top_cmd(message: types.Message):
         username_str = f"@{username}" if username else "—"
         text += f"{i}) {username_str} (<code>{uid}</code>) — <b>{score}⭐</b>\n"
     await message.answer(text, reply_markup=main_menu(message.from_user.id))
-    
-@dp.message(F.text == "📚 Разделы")
-async def sections_cmd(message: types.Message, state: FSMContext):
-    await state.clear()
-    await message.answer("Выбери раздел:", reply_markup=sections_menu())
 
 @dp.message(F.text == "📚 Разделы")
 async def choose_category(message: types.Message, state: FSMContext):
-    await state.set_state(QuizStates.choosing_category)
+    await state.set_state(Quiz.choosing_category)
     await message.answer("<b>Выберите категорию:</b>", reply_markup=categories_menu())
 
 @dp.message(QuizStates.choosing_category)
@@ -337,7 +332,7 @@ async def category_selected(message: types.Message, state: FSMContext):
         await message.answer("❌ Такой категории нет. Выберите категорию из списка.")
         return
     await state.update_data(category=category)
-    await state.set_state(QuizStates.choosing_section)
+    await state.set_state(Quiz.choosing_section)
     await message.answer(
         f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
         reply_markup=sections_menu(category)
@@ -349,7 +344,7 @@ async def section_selected(message: types.Message, state: FSMContext):
     category = data.get("category")
     section_title = message.text.replace("📚", "").replace("🔫", "").replace("💼", "").replace("🏛", "").replace("📄", "").strip()
     if message.text == "⬅️ К категориям":
-        await state.set_state(QuizStates.choosing_category)
+        await state.set_state(Quiz.choosing_category)
         await message.answer("<b>Выберите категорию:</b>", reply_markup=categories_menu())
         return
     if message.text == "🏠 В главное меню":
@@ -358,7 +353,7 @@ async def section_selected(message: types.Message, state: FSMContext):
         return
     if category not in CATEGORY_SECTIONS:
         await message.answer("❌ Сначала выберите категорию.")
-        await state.set_state(QuizStates.choosing_category)
+        await state.set_state(Quiz.choosing_category)
         await message.answer("<b>Выберите категорию:</b>", reply_markup=categories_menu())
         return
     # Найти раздел по названию
