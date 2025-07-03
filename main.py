@@ -16,12 +16,12 @@ VIDEO_ID_FILE = "welcome_video_id.json"
 COOLDOWN_SECONDS = 5 * 60  # 5 минут
 
 CATEGORY_EMOJIS = {
-    "Для ОПГ": "🔫"
+    "Для ОПГ": "🔪"
 }
 CATEGORY_SECTIONS = {
-    "Для ОПГ": ["bizwar"]
+    "Для ОПГ": ["bizwar","pohitil"]
 }
-SECTION_EMOJIS = {"bizwar": "💼"}
+SECTION_EMOJIS = {"bizwar": "💼"}, {"pohitil": "💰"}
 DEFAULT_SECTION_EMOJI = "📚"
 
 SECTIONS = [
