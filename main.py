@@ -344,7 +344,11 @@ async def section_selected(message: types.Message, state: FSMContext):
         await message.answer("<b>Выберите категорию:</b>", reply_markup=categories_menu())
         return
     # Найти раздел по названию
-    section = next((s for s in CATEGORY_SECTIONS[category] if s["title"] == section_title), None)
+    section_ids = CATEGORY_SECTIONS[category]
+    section = next(
+    (s for s in SECTIONS if s["id"] in section_ids and s["title"] == section_title),
+    None
+)
     if not section:
         await message.answer("❌ Такого раздела нет. Выберите из списка.")
         return
