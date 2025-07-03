@@ -24,7 +24,6 @@ CATEGORY_SECTIONS = {
 
 # Список разделов
 SECTIONS = [
-    {
         "title": "Правила войны за бизнес (БизВар)",
         "id": "bizwar",
         "questions": [
