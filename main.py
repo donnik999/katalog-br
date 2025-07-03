@@ -2,6 +2,7 @@ import os
 import json
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
@@ -16,8 +17,27 @@ DATA_FILE = "user_scores.json"
 PHOTO_ID_FILE = "welcome_photo_id.json"
 COOLDOWN_SEC = 300  # 5 минут
 
+CATEGORY_SECTIONS = {
+    "Для ОПГ": [
+        {"id": "bizwar", "title": "Вопросы по Бизвару"},
+        {"id": "numbers", "title": "Вопросы по теме 2"},
+    ],
+    "Для Госс": [
+        {"id": "goss1", "title": "Госслужба"},
+        {"id": "goss2", "title": "Другие вопросы"},
+    ],
+}
+
 SECTION_EMOJIS = {
-    "common": "❓",
+    "opg1": "🔫",
+    "opg2": "💼",
+    "goss1": "🏛",
+    "goss2": "📄",
+}
+DEFAULT_SECTION_EMOJI = "📚"
+
+SECTION_EMOJIS = {
+    "bizwar": "⚔️",
     "numbers": "🔢"
 }
 DEFAULT_SECTION_EMOJI = "📦"
@@ -81,7 +101,7 @@ SECTIONS = [
         ]
     },
     {
-        "title": "Числа",
+        "title": "",
         "id": "numbers",
         "questions": [
             {
@@ -124,6 +144,9 @@ class Quiz(StatesGroup):
     question = State()
     waiting_continue = State()
     waiting_photo = State()
+    choosing_category = State()
+    choosing_section = State()
+    answering = State()
 
 user_scores = {}
 user_cooldowns = {}
@@ -170,6 +193,20 @@ def main_menu(user_id=None):
     if user_id == ADMIN_ID:
         kb.append([KeyboardButton(text="🖼 Изменить фотографию приветствия")])
         kb.append([KeyboardButton(text="👑 Админ-меню")])
+    kb.append([KeyboardButton(text="🏠 В главное меню")])
+    return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
+
+def categories_menu():
+    kb = [[KeyboardButton(text=cat)] for cat in CATEGORY_SECTIONS.keys()]
+    kb.append([KeyboardButton(text="🏠 В главное меню")])
+    return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
+
+def sections_menu(category):
+    kb = []
+    for sec in CATEGORY_SECTIONS[category]:
+        emoji = SECTION_EMOJIS.get(sec["id"], DEFAULT_SECTION_EMOJI)
+        kb.append([KeyboardButton(text=f"{emoji} {sec['title']}")])
+    kb.append([KeyboardButton(text="⬅️ К категориям")])
     kb.append([KeyboardButton(text="🏠 В главное меню")])
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
@@ -283,6 +320,56 @@ async def top_cmd(message: types.Message):
 async def sections_cmd(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Выбери раздел:", reply_markup=sections_menu())
+
+@dp.message(F.text == "📚 Разделы")
+async def choose_category(message: types.Message, state: FSMContext):
+    await state.set_state(QuizStates.choosing_category)
+    await message.answer("<b>Выберите категорию:</b>", reply_markup=categories_menu())
+
+@dp.message(QuizStates.choosing_category)
+async def category_selected(message: types.Message, state: FSMContext):
+    category = message.text.strip()
+    if category == "🏠 В главное меню":
+        await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
+        await state.clear()
+        return
+    if category not in CATEGORY_SECTIONS:
+        await message.answer("❌ Такой категории нет. Выберите категорию из списка.")
+        return
+    await state.update_data(category=category)
+    await state.set_state(QuizStates.choosing_section)
+    await message.answer(
+        f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
+        reply_markup=sections_menu(category)
+    )
+
+@dp.message(QuizStates.choosing_section)
+async def section_selected(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    category = data.get("category")
+    section_title = message.text.replace("📚", "").replace("🔫", "").replace("💼", "").replace("🏛", "").replace("📄", "").strip()
+    if message.text == "⬅️ К категориям":
+        await state.set_state(QuizStates.choosing_category)
+        await message.answer("<b>Выберите категорию:</b>", reply_markup=categories_menu())
+        return
+    if message.text == "🏠 В главное меню":
+        await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
+        await state.clear()
+        return
+    if category not in CATEGORY_SECTIONS:
+        await message.answer("❌ Сначала выберите категорию.")
+        await state.set_state(QuizStates.choosing_category)
+        await message.answer("<b>Выберите категорию:</b>", reply_markup=categories_menu())
+        return
+    # Найти раздел по названию
+    section = next((s for s in CATEGORY_SECTIONS[category] if s["title"] == section_title), None)
+    if not section:
+        await message.answer("❌ Такого раздела нет. Выберите из списка.")
+        return
+    # Здесь логика запуска викторины для выбранного раздела
+    # Например:
+    # await start_quiz_for_section(section, message, state)
+    await message.answer(f"Вы выбрали раздел: {section['title']}. Тут будет запуск вопросов.")
 
 @dp.message(lambda m: m.text and any(m.text.startswith(SECTION_EMOJIS.get(sec['id'], DEFAULT_SECTION_EMOJI)) for sec in SECTIONS))
 async def start_section(message: types.Message, state: FSMContext):
