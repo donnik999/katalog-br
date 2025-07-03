@@ -88,6 +88,7 @@ class Quiz(StatesGroup):
     choosing_section = State()
     answering = State()
     waiting_photo = State()
+    waiting_video = State()
 
 user_scores = {}
 user_cooldowns = {}  # user_id: {section_id: last_time}
