@@ -12,6 +12,7 @@ BOT_TOKEN = "7220830808:AAE7R_edzGpvUNboGOthydsT9m81TIfiqzU"
 ADMIN_ID = 6712617550  # Укажи свой id
 DATA_FILE = "data.json"
 PHOTO_ID_FILE = "welcome_photo_id.json"
+VIDEO_ID_FILE = "welcome_video_id.json"
 COOLDOWN_SECONDS = 5 * 60  # 5 минут
 
 CATEGORY_EMOJIS = {
@@ -125,6 +126,16 @@ def load_photo_id():
         pass
     return None
 
+def save_video_id(video_id):
+    with open(VIDEO_ID_FILE, 'w', encoding="utf-8") as f:
+        json.dump({"video_id": video_id}, f)
+
+def load_video_id():
+    if os.path.exists(VIDEO_ID_FILE):
+        with open(VIDEO_ID_FILE, 'r', encoding="utf-8") as f:
+            return json.load(f).get("video_id")
+    return None
+
 def main_menu(user_id=None):
     kb = [
         [KeyboardButton(text="📚 Разделы")],
@@ -166,12 +177,29 @@ dp = Dispatcher()
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
-    photo_id = load_photo_id()
+    video_id = load_video_id()
     caption = (
-        "<b>🎮 Добро пожаловать в викторину Black Russia!</b>\n"
+        "<b>🎬 Добро пожаловать в тренажёр Black Russia!</b>\n"
         "Выбирай раздел, отвечай на вопросы, зарабатывай баллы и попадай в топ!\n\n"
         "Нажми кнопку или /menu для начала."
     )
+    if video_id:
+        await message.answer_video(
+            video=video_id,
+            caption=caption,
+            reply_markup=main_menu(message.from_user.id)
+        )
+    else:
+        await message.answer(
+            caption,
+            reply_markup=main_menu(message.from_user.id)
+    )
+
+@dp.message(Command("menu"))
+async def cmd_menu(message: types.Message, state: FSMContext):
+    await state.clear()
+    photo_id = load_photo_id()
+    caption = "🔝 <b>Главное меню:</b>"
     if photo_id:
         await message.answer_photo(
             photo=photo_id,
@@ -183,11 +211,6 @@ async def cmd_start(message: types.Message, state: FSMContext):
             caption,
             reply_markup=main_menu(message.from_user.id)
         )
-
-@dp.message(Command("menu"))
-async def cmd_menu(message: types.Message, state: FSMContext):
-    await state.clear()
-    await message.answer("🔝 <b>Главное меню:</b>", reply_markup=main_menu(message.from_user.id))
 
 @dp.message(F.text == "🏠 В главное меню")
 async def back_to_main_menu(message: types.Message, state: FSMContext):
@@ -367,6 +390,24 @@ async def handle_photo(message: types.Message, state: FSMContext):
     save_photo_id(photo_id)
     await state.clear()
     await message.answer("Фото приветствия успешно обновлено!")
+
+@dp.message(Command("setstartvideo"))
+async def set_start_video(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    await state.set_state(Quiz.waiting_video)
+    await message.answer("Отправьте видео, которое будет приветствием при /start.")
+
+@dp.message(Quiz.waiting_video, F.video)
+async def handle_video(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("Нет доступа.")
+        return
+    video_id = message.video.file_id
+    save_video_id(video_id)
+    await state.clear()
+    await message.answer("Видео приветствия успешно сохранено.")
 
 @dp.message()
 async def fallback(message: types.Message):
