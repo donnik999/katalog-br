@@ -321,7 +321,7 @@ async def choose_category(message: types.Message, state: FSMContext):
     await state.set_state(Quiz.choosing_category)
     await message.answer("<b>Выберите категорию:</b>", reply_markup=categories_menu())
 
-@dp.message(QuizStates.choosing_category)
+@dp.message(Quiz.choosing_category)
 async def category_selected(message: types.Message, state: FSMContext):
     category = message.text.strip()
     if category == "🏠 В главное меню":
