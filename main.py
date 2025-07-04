@@ -358,6 +358,12 @@ def sections_menu(category):
     kb.append([KeyboardButton(text="🏠 В главное меню")])
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
+def subcategories_menu():
+    kb = InlineKeyboardMarkup(row_width=2)
+    for subcat in CATEGORY_SECTIONS["Для ГОСС"]:
+        kb.add(InlineKeyboardButton(text=subcat, callback_data=f"subcat_{subcat}"))
+    return kb
+
 def question_kb(options):
     return ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text=o)] for o in options], resize_keyboard=True)
 
@@ -435,7 +441,21 @@ async def category_selected(message: types.Message, state: FSMContext):
     await message.answer(
         f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
         reply_markup=sections_menu(category)
+    if category == "Для ГОСС":
+    await callback.message.edit_text(
+        "Выберите организацию:",
+        reply_markup=subcategories_menu()
     )
+    return
+
+@dp.callback_query(F.data.startswith("subcat_"))
+async def subcategory_goss_handler(callback: types.CallbackQuery):
+    subcat = callback.data[len("subcat_"):]
+    sections = CATEGORY_SECTIONS["Для ГОСС"][subcat]
+    kb = InlineKeyboardMarkup(row_width=2)
+    for section in sections:
+        kb.add(InlineKeyboardButton(text=section, callback_data=f"section_{section}"))
+    await callback.message.edit_text(f"Выберите раздел в организации {subcat}:", reply_markup=kb)
 
 @dp.message(Quiz.choosing_section)
 async def section_selected(message: types.Message, state: FSMContext):
