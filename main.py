@@ -24,7 +24,7 @@ CATEGORY_SECTIONS = {
 }
 SECTION_EMOJIS = {
     "bizwar": "💼",
-    "pohitil": "💰🥷"  # пример для нового раздела
+    "pohitil": "💰🥷",   # пример для нового раздела
     "poezdka": "🚚"
 }
 DEFAULT_SECTION_EMOJI = "📚"
