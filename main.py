@@ -19,12 +19,14 @@ COOLDOWN_SECONDS = 5 * 60  # 5 минут
 CATEGORY_EMOJIS = {
     "Для ОПГ": "🔪"
 }
+
 CATEGORY_SECTIONS = {
     "Для ОПГ": ["bizwar", "pohitil", "poezdka"]
 }
+
 SECTION_EMOJIS = {
     "bizwar": "💼",
-    "pohitil": "💰🥷",   # пример для нового раздела
+    "pohitil": "💰🥷",
     "poezdka": "🚚"
 }
 DEFAULT_SECTION_EMOJI = "📚"
