@@ -480,10 +480,10 @@ async def handle_video(message: types.Message, state: FSMContext):
 async def fallback(message: types.Message):
     await message.answer("Не понял команду. Жми '🏠 В главное меню' или /menu.")
 
-@dp.message(F.text == "Проверить OpenAI")
-async def check_openai_button(message: types.Message):
+@dp.message(Command("checkopenai"))
+async def check_openai_key(message: types.Message):
     import openai
-    openai.api_key = "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"  # подставь свой способ получения ключа
+    openai.api_key = "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"  # или подтяни из env/конфига
     try:
         resp = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -496,6 +496,10 @@ async def check_openai_button(message: types.Message):
         await message.answer("✅ Ключ рабочий! Ответ: " + resp['choices'][0]['message']['content'])
     except Exception as e:
         await message.answer(f"❌ Ошибка с ключом: {e}")
+
+@dp.message()
+async def fallback(message: types.Message):
+    await message.answer("Не понял команду. Жми '🏠 В главное меню' или /menu.")
 
 load_data()
 
