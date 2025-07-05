@@ -653,11 +653,16 @@ async def profile_cmd(message: types.Message):
 
 @dp.message(F.text == "🏆 Топ")
 async def top_cmd(message: types.Message):
+    user_id = str(message.from_user.id)
+    user_infos[user_id] = {
+        "username": message.from_user.username,
+        "nickname": message.from_user.first_name
+    }
     if not user_scores:
         await message.answer("Пока никто не набрал баллы. Будь первым!", reply_markup=main_menu(message.from_user.id))
         return
     top = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)[:10]
-    text = "🏆 <b>Топ-10 пользователей данного бота:</b>\n"
+    text = "🏆 <b>Топ-10 пользователей:</b>\n"
     for i, (uid, score) in enumerate(top, 1):
         info = user_infos.get(uid, {})
         username = f"@{info.get('username')}" if info.get('username') else "—"
