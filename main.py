@@ -604,8 +604,12 @@ async def section_selected(message: types.Message, state: FSMContext):
 
 @dp.message(Quiz.answering)
 async def answer_handler(message: types.Message, state: FSMContext):
-    data = await state.get_data()
     user_id = str(message.from_user.id)
+    user_infos[user_id] = {
+        "username": message.from_user.username,
+        "nickname": message.from_user.first_name
+    }
+    data = await state.get_data()
     section_id = data["section_id"]
     q_index = data["q_index"]
     section = next((s for s in SECTIONS if s["id"] == section_id), None)
