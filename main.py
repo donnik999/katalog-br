@@ -428,34 +428,64 @@ async def category_selected(message: types.Message, state: FSMContext):
     category = message.text
     for emoji in CATEGORY_EMOJIS.values():
         category = category.replace(emoji, "")
-    # Убираем все лишние пробелы
     category = " ".join(category.split())
 
-    # Главное меню
     if category == "В главное меню":
         await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
         await state.clear()
         return
 
-    # Проверяем корректность категории
     if category not in CATEGORY_SECTIONS:
-        await message.answer("❌ Такой категории нет. Выберите категорию из списка:", reply_markup=categories_menu())
+        await message.answer("❌ Такой категории нет. Выберите категорию из списка.", reply_markup=categories_menu())
         return
 
     await state.update_data(category=category)
 
-    # Для ГОСС — отдельное меню подкатегорий
+    # Для ГОСС — выводим подкатегории (ключи словаря)
     if category == "Для ГОСС":
-        await state.set_state(Quiz.choosing_section)
-        await message.answer("Выберите организацию:", reply_markup=subcategories_menu())
+        await state.set_state(Quiz.choosing_goss_subcategory)
+        subcats = list(CATEGORY_SECTIONS["Для ГОСС"].keys())
+        kb = ReplyKeyboardMarkup(resize_keyboard=True)
+        for subcat in subcats:
+            kb.add(KeyboardButton(subcat))
+        kb.add(KeyboardButton("⬅️ К категориям"))
+        kb.add(KeyboardButton("🏠 В главное меню"))
+        await message.answer("Выберите организацию:", reply_markup=kb)
         return
 
-    # Для остальных — меню разделов
+    # Для ОПГ — выводим разделы по списку id
     await state.set_state(Quiz.choosing_section)
     await message.answer(
         f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
         reply_markup=sections_menu(category)
     )
+
+@dp.message(Quiz.choosing_goss_subcategory)
+async def goss_subcategory_selected(message: types.Message, state: FSMContext):
+    subcat = message.text.strip()
+
+    if subcat == "⬅️ К категориям":
+        await state.set_state(Quiz.choosing_category)
+        await message.answer("Выберите категорию:", reply_markup=categories_menu())
+        return
+    if subcat == "🏠 В главное меню":
+        await state.clear()
+        await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
+        return
+    
+    data = await state.get_data()
+    category = data.get("category")
+    if category != "Для ГОСС" or subcat not in CATEGORY_SECTIONS["Для ГОСС"]:
+        await message.answer("❌ Такой организации нет. Выберите из списка.", reply_markup=categories_menu())
+        return
+
+    await state.update_data(subcategory=subcat)
+    await state.set_state(Quiz.choosing_section)
+    await message.answer(
+        f"<b>Вы выбрали организацию:</b> {subcat}\n\nВыберите раздел:",
+        reply_markup=sections_menu_goss(subcat)
+    )
+
 
 @dp.callback_query(F.data.startswith("subcat_"))
 async def subcategory_goss_handler(callback: types.CallbackQuery):
@@ -468,57 +498,48 @@ async def subcategory_goss_handler(callback: types.CallbackQuery):
 
 @dp.message(Quiz.choosing_section)
 async def section_selected(message: types.Message, state: FSMContext):
+    section_title = message.text.strip()
+    if section_title == "⬅️ К категориям":
+        data = await state.get_data()
+        category = data.get("category")
+        if category == "Для ГОСС":
+            await state.set_state(Quiz.choosing_goss_subcategory)
+            subcats = list(CATEGORY_SECTIONS["Для ГОСС"].keys())
+            kb = ReplyKeyboardMarkup(resize_keyboard=True)
+            for subcat in subcats:
+                kb.add(KeyboardButton(subcat))
+            kb.add(KeyboardButton("⬅️ К категориям"))
+            kb.add(KeyboardButton("🏠 В главное меню"))
+            await message.answer("Выберите организацию:", reply_markup=kb)
+        else:
+            await state.set_state(Quiz.choosing_category)
+            await message.answer("Выберите категорию:", reply_markup=categories_menu())
+        return
+    if section_title == "🏠 В главное меню":
+        await state.clear()
+        await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
+        return
+
     data = await state.get_data()
     category = data.get("category")
-    user_section = message.text
+    section_ids = None
+    if category == "Для ГОСС":
+        subcat = data.get("subcategory")
+        if not subcat or subcat not in CATEGORY_SECTIONS["Для ГОСС"]:
+            await message.answer("Ошибка: выберите организацию заново.", reply_markup=categories_menu())
+            await state.set_state(Quiz.choosing_category)
+            return
+        section_ids = CATEGORY_SECTIONS["Для ГОСС"][subcat]
+    else:
+        section_ids = CATEGORY_SECTIONS[category]
 
-    # Проверка: если пользователь снова прислал категорию, а не раздел
-    if user_section.replace(" ", "") in [cat.replace(" ", "") for cat in CATEGORY_SECTIONS]:
-        await message.answer("❗️Вы уже выбрали категорию. Теперь выберите раздел из списка кнопок ниже.", reply_markup=sections_menu(category))
+    # Проверка раздела
+    section = next((s for s in SECTIONS if s["id"] in section_ids and s["title"] == section_title), None)
+    if not section:
+        await message.answer("❌ Такого раздела нет. Выберите раздел из списка.", reply_markup=sections_menu(category))
         return
-
-    # Получаем список названий разделов для выбранной категории
-    valid_section_titles = []
-    for sec_id in CATEGORY_SECTIONS[category]:
-        section = next((s for s in SECTIONS if s["id"] == sec_id), None)
-        if section:
-            valid_section_titles.append(section["title"])
-
-    # Проверка на валидность раздела
-    if user_section not in valid_section_titles:
-        await message.answer("❌ Такого раздела нет. Пожалуйста, выберите раздел из списка.", reply_markup=sections_menu(category))
-        return
-
-    # Тут твоя логика по выбранному разделу:
-    await message.answer(f"Вы выбрали раздел: {user_section}")
-
-    # КУЛДАУН!
-    user_id = str(message.from_user.id)
-    section_id = section["id"]
-    now = int(time.time())
-    last = int(user_cooldowns.get(user_id, {}).get(section_id, 0))
-    wait = COOLDOWN_SECONDS - (now - last)
-    if wait > 0:
-        await message.answer(f"⏳ Этот раздел можно проходить раз в 5 минут.\nПодождите еще {wait//60} мин {wait%60} сек.")
-        await state.clear()
-        return
-
-    # Рандомизация порядка вопросов
-    q_count = len(section["questions"])
-    question_order = list(range(q_count))
-    random.shuffle(question_order)
-    if user_id not in user_random_questions:
-        user_random_questions[user_id] = {}
-    user_random_questions[user_id][section_id] = question_order
-
-    await state.update_data(section_id=section_id, q_index=0)
-    await state.set_state(Quiz.answering)
-    first_q_idx = question_order[0]
-    q = section["questions"][first_q_idx]
-    await message.answer(
-        f"<b>{q['question']}</b>",
-        reply_markup=question_kb(q["options"])
-    )
+    # Дальше твоя логика!
+    await message.answer(f"Вы выбрали раздел: {section_title}")
 
 @dp.message(Quiz.answering)
 async def answer_handler(message: types.Message, state: FSMContext):
@@ -631,10 +652,6 @@ async def handle_video(message: types.Message, state: FSMContext):
     save_video_id(video_id)
     await state.clear()
     await message.answer("Видео приветствия успешно сохранено.")
-
-@dp.message()
-async def fallback(message: types.Message):
-    await message.answer("Не понял команду. Жми '🏠 В главное меню' или /menu.")
 
 @dp.message()
 async def fallback(message: types.Message):
