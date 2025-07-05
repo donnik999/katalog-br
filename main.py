@@ -428,13 +428,15 @@ async def category_selected(message: types.Message, state: FSMContext):
     category = message.text
     for emoji in CATEGORY_EMOJIS.values():
         category = category.replace(emoji, "")
-    category = category.strip()
-    if category == "🏠 В главное меню":
+    category = " ".join(category.split())  # удаляет лишние пробелы
+
+    if category == "В главное меню":
         await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
         await state.clear()
         return
+
     if category not in CATEGORY_SECTIONS:
-        await message.answer("❌ Такой категории нет. Выберите категорию из списка.")
+        await message.answer("❌ Такой категории нет. Выберите категорию из списка.", reply_markup=categories_menu())
         return
 
     await state.update_data(category=category)
@@ -446,6 +448,11 @@ async def category_selected(message: types.Message, state: FSMContext):
             reply_markup=subcategories_menu()
         )
         return
+
+    await message.answer(
+        f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
+        reply_markup=sections_menu(category)
+    )
 
     await message.answer(
         f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
