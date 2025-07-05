@@ -514,21 +514,10 @@ async def section_selected(message: types.Message, state: FSMContext):
         section_title = section_title.replace(emoji, "")
     section_title = section_title.strip()
 
-    data = await state.get_data()
-    category = data.get("category")
-    section_ids = None
-    if category == "Для ГОСС":
-        subcat = data.get("subcategory")
-        if not subcat or subcat not in CATEGORY_SECTIONS["Для ГОСС"]:
-            await message.answer("Ошибка: выберите организацию заново.", reply_markup=categories_menu())
-            await state.set_state(Quiz.choosing_category)
-            return
-        section_ids = CATEGORY_SECTIONS["Для ГОСС"][subcat]
-    else:
-        section_ids = CATEGORY_SECTIONS[category]
-
-    # Кнопка "К категориям"
-    if section_title == "К категориям":
+    # Обработка кнопки "К категориям" для обоих категорий
+    if section_title in ["⬅️ К категориям", "К категориям"]:
+        data = await state.get_data()
+        category = data.get("category")
         if category == "Для ГОСС":
             await state.set_state(Quiz.choosing_goss_subcategory)
             subcats = list(CATEGORY_SECTIONS["Для ГОСС"].keys())
@@ -544,10 +533,23 @@ async def section_selected(message: types.Message, state: FSMContext):
         return
 
     # Кнопка "В главное меню"
-    if section_title == "В главное меню":
+    if section_title in ["🏠 В главное меню", "В главное меню"]:
         await state.clear()
         await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
         return
+
+    data = await state.get_data()
+    category = data.get("category")
+    section_ids = None
+    if category == "Для ГОСС":
+        subcat = data.get("subcategory")
+        if not subcat or subcat not in CATEGORY_SECTIONS["Для ГОСС"]:
+            await message.answer("Ошибка: выберите организацию заново.", reply_markup=categories_menu())
+            await state.set_state(Quiz.choosing_category)
+            return
+        section_ids = CATEGORY_SECTIONS["Для ГОСС"][subcat]
+    else:
+        section_ids = CATEGORY_SECTIONS[category]
 
     # Ищем раздел только по title и id
     section = next((s for s in SECTIONS if s["title"] == section_title and s["id"] in section_ids), None)
@@ -556,26 +558,23 @@ async def section_selected(message: types.Message, state: FSMContext):
         return
 
     # --- Логика старта викторины ---
-    # Запускаем вопросы
     questions = section["questions"]
     user_id = str(message.from_user.id)
     q_count = len(questions)
-    # Случайный порядок вопросов
     question_order = list(range(q_count))
     random.shuffle(question_order)
     if user_id not in user_random_questions:
         user_random_questions[user_id] = {}
     user_random_questions[user_id][section["id"]] = question_order
 
-    # Сохраняем данные в state
     await state.update_data(section_id=section["id"], q_index=0)
     await state.set_state(Quiz.answering)
 
-    # Отправляем первый вопрос
+    # Показываем первый вопрос с номером
     first_q_idx = question_order[0]
     first_q = questions[first_q_idx]
     await message.answer(
-        f"<b>{first_q['question']}</b>",
+        f"[1 вопрос из {q_count}]\n<b>{first_q['question']}</b>",
         reply_markup=question_kb(first_q["options"])
     )
 
@@ -612,13 +611,15 @@ async def answer_handler(message: types.Message, state: FSMContext):
         await message.answer("✅ Верно! +1 балл")
     else:
         await message.answer(f"❌ Неверно! Правильный ответ: {q['options'][q['answer']]}")
+
     next_q_index = q_index + 1
-    if next_q_index < len(question_order):
+    q_count = len(question_order)
+    if next_q_index < q_count:
         await state.update_data(q_index=next_q_index)
         next_q_real_idx = question_order[next_q_index]
         next_q = section["questions"][next_q_real_idx]
         await message.answer(
-            f"<b>{next_q['question']}</b>",
+            f"[{next_q_index+1} вопрос из {q_count}]\n<b>{next_q['question']}</b>",
             reply_markup=question_kb(next_q["options"])
         )
     else:
