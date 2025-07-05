@@ -428,26 +428,34 @@ async def category_selected(message: types.Message, state: FSMContext):
     category = message.text
     for emoji in CATEGORY_EMOJIS.values():
         category = category.replace(emoji, "")
-    category = " ".join(category.split())  # удаляет лишние пробелы
+    # Убираем все лишние пробелы
+    category = " ".join(category.split())
 
+    # Главное меню
     if category == "В главное меню":
         await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
         await state.clear()
         return
 
+    # Проверяем корректность категории
     if category not in CATEGORY_SECTIONS:
-        await message.answer("❌ Такой категории нет. Выберите категорию из списка.", reply_markup=categories_menu())
+        await message.answer("❌ Такой категории нет. Выберите категорию из списка:", reply_markup=categories_menu())
         return
 
     await state.update_data(category=category)
-    await state.set_state(Quiz.choosing_section)
 
+    # Для ГОСС — отдельное меню подкатегорий
     if category == "Для ГОСС":
-        await message.answer(
-            "Выберите организацию:",
-            reply_markup=subcategories_menu()
-        )
+        await state.set_state(Quiz.choosing_section)
+        await message.answer("Выберите организацию:", reply_markup=subcategories_menu())
         return
+
+    # Для остальных — меню разделов
+    await state.set_state(Quiz.choosing_section)
+    await message.answer(
+        f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
+        reply_markup=sections_menu(category)
+        )
 
     await message.answer(
         f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
@@ -472,23 +480,27 @@ async def subcategory_goss_handler(callback: types.CallbackQuery):
 async def section_selected(message: types.Message, state: FSMContext):
     data = await state.get_data()
     category = data.get("category")
-    section_title = message.text
-    for emoji in SECTION_EMOJIS.values():
-        section_title = section_title.replace(emoji, "")
-    section_title = section_title.strip()
-    if section_title == "⬅️ К категориям":
-        await state.set_state(Quiz.choosing_category)
-        await message.answer("Выберите категорию:", reply_markup=categories_menu())
+    user_section = message.text
+
+    # Проверка: если пользователь снова прислал категорию, а не раздел
+    if user_section.replace(" ", "") in [cat.replace(" ", "") for cat in CATEGORY_SECTIONS]:
+        await message.answer("❗️Вы уже выбрали категорию. Теперь выберите раздел из списка кнопок ниже.", reply_markup=sections_menu(category))
         return
-    if section_title == "🏠 В главное меню":
-        await state.clear()
-        await message.answer("Главное меню", reply_markup=main_menu(message.from_user.id))
+
+    # Получаем список названий разделов для выбранной категории
+    valid_section_titles = []
+    for sec_id in CATEGORY_SECTIONS[category]:
+        section = next((s for s in SECTIONS if s["id"] == sec_id), None)
+        if section:
+            valid_section_titles.append(section["title"])
+
+    # Проверка на валидность раздела
+    if user_section not in valid_section_titles:
+        await message.answer("❌ Такого раздела нет. Пожалуйста, выберите раздел из списка.", reply_markup=sections_menu(category))
         return
-    section_ids = CATEGORY_SECTIONS[category]
-    section = next((s for s in SECTIONS if s["id"] in section_ids and s["title"] == section_title), None)
-    if not section:
-        await message.answer("❌ Такого раздела нет.")
-        return
+
+    # Тут твоя логика по выбранному разделу:
+    await message.answer(f"Вы выбрали раздел: {user_section}")
 
     # КУЛДАУН!
     user_id = str(message.from_user.id)
