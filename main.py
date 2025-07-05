@@ -4,6 +4,7 @@ import time
 import random
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram import types
 from aiogram.filters import Command
 from aiogram.fsm.state import StatesGroup, State
