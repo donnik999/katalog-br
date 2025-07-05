@@ -590,13 +590,14 @@ async def section_selected(message: types.Message, state: FSMContext):
     await message.answer(
         f"[1 вопрос из {q_count}]\n<b>{first_q['question']}</b>",
         reply_markup=question_kb(first_q["options"])
-
+    ) 
+    
     now = int(time.time())
     if user_id not in user_cooldowns:
         user_cooldowns[user_id] = {}
     user_cooldowns[user_id][section_id] = now
     save_data()
-    )
+    
 
 @dp.message(Quiz.answering)
 async def answer_handler(message: types.Message, state: FSMContext):
