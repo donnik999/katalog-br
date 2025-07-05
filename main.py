@@ -558,6 +558,19 @@ async def section_selected(message: types.Message, state: FSMContext):
         await message.answer("❌ Такого раздела нет. Выберите раздел из списка.", reply_markup=sections_menu(category))
         return
 
+    COOLDOWN = 5 * 60  # 5 минут
+    user_id = str(message.from_user.id)
+    user_cd = user_cooldowns.get(user_id, {})
+    last_time = user_cd.get(section["id"])
+    if last_time:
+        now = int(time.time())
+        remain = last_time + COOLDOWN - now
+        if remain > 0:
+            minutes = remain // 60
+            seconds = remain % 60
+            await message.answer(f"🕒 До следующей попытки этого раздела осталось {minutes} мин {seconds} сек.")
+            return
+
     # --- Логика старта викторины ---
     questions = section["questions"]
     user_id = str(message.from_user.id)
@@ -577,6 +590,12 @@ async def section_selected(message: types.Message, state: FSMContext):
     await message.answer(
         f"[1 вопрос из {q_count}]\n<b>{first_q['question']}</b>",
         reply_markup=question_kb(first_q["options"])
+
+    now = int(time.time())
+    if user_id not in user_cooldowns:
+        user_cooldowns[user_id] = {}
+    user_cooldowns[user_id][section_id] = now
+    save_data()
     )
 
 @dp.message(Quiz.answering)
