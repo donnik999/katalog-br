@@ -1,4 +1,4 @@
-import os
+йimport os
 import json
 import time
 import random
@@ -445,12 +445,12 @@ async def category_selected(message: types.Message, state: FSMContext):
     # Для ГОСС — выводим подкатегории (ключи словаря)
     if category == "Для ГОСС":
         await state.set_state(Quiz.choosing_goss_subcategory)
-        subcats = list(CATEGORY_SECTIONS["Для ГОСС"].keys())
-        kb = ReplyKeyboardMarkup(resize_keyboard=True)
-        for subcat in subcats:
-            kb.add(KeyboardButton(subcat))
-        kb.add(KeyboardButton("⬅️ К категориям"))
-        kb.add(KeyboardButton("🏠 В главное меню"))
+                subcats = list(CATEGORY_SECTIONS["Для ГОСС"].keys())
+        kb = ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(text=subcat)] for subcat in subcats] +
+                    [[KeyboardButton(text="⬅️ К категориям")], [KeyboardButton(text="🏠 В главное меню")]],
+            resize_keyboard=True
+        )
         await message.answer("Выберите организацию:", reply_markup=kb)
         return
 
@@ -535,7 +535,7 @@ async def section_selected(message: types.Message, state: FSMContext):
         section_ids = CATEGORY_SECTIONS[category]
 
     # Проверка раздела
-    section = next((s for s in SECTIONS if s["id"] in section_ids and s["title"] == section_title), None)
+        section = next((s for s in SECTIONS if s["title"].strip() == section_title.strip() and s["id"] in section_ids), None)
     if not section:
         await message.answer("❌ Такого раздела нет. Выберите раздел из списка.", reply_markup=sections_menu(category))
         return
