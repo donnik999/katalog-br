@@ -24,13 +24,13 @@ CATEGORY_EMOJIS = {
 CATEGORY_SECTIONS = {
     "Для ОПГ": ["bizwar", "pohitil", "poezdka"], 
     "Для ГОСС": {
-        "Армия": ["deportament", "perevod"],
-        "УМВД/ГИБДД": ["deportament", "perevod"],
-        "ФСБ": ["deportament", "perevod"],
-        "Правительство": ["deportament", "perevod"],
-        "Центральная больница": ["deportament", "perevod"],
-        "СМИ": ["deportament", "perevod"],
-        "ФСИН": ["deportament", "perevod"]
+        "🪖 Армия": ["deportament", "perevod"],
+        "🚓 УМВД/ГИБДД": ["deportament", "perevod"],
+        "🕵️‍♂️ ФСБ": ["deportament", "perevod"],
+        "🏢 Правительство": ["deportament", "perevod"],
+        "🚑 Центральная больница": ["deportament", "perevod"],
+        "🗞 СМИ": ["deportament", "perevod"],
+        "👮 ФСИН": ["deportament", "perevod"]
     }
 }
 
