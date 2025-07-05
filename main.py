@@ -455,11 +455,6 @@ async def category_selected(message: types.Message, state: FSMContext):
     await message.answer(
         f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
         reply_markup=sections_menu(category)
-        )
-
-    await message.answer(
-        f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
-        reply_markup=sections_menu(category)
     )
 
 @dp.callback_query(F.data.startswith("subcat_"))
