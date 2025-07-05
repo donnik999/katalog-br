@@ -286,20 +286,23 @@ user_cooldowns = {}  # user_id: {section_id: last_time}
 user_random_questions = {}  # user_id: {section_id: [индексы вопросов в рандоме]}
 
 def load_data():
-    global user_scores, user_cooldowns
+    global user_scores, user_cooldowns, user_infos
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
             user_scores.update(data.get("scores", {}))
             user_cooldowns.update(data.get("cooldowns", {}))
+            user_infos.update(data.get("infos", {}))  # добавлено!
     else:
         user_scores.clear()
         user_cooldowns.clear()
+        user_infos.clear()  # добавлено!
 
 def save_data():
     data = {
         "scores": user_scores,
-        "cooldowns": user_cooldowns
+        "cooldowns": user_cooldowns,
+        "infos": user_infos  # добавлено!
     }
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
