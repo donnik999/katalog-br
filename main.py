@@ -464,7 +464,6 @@ async def category_selected(message: types.Message, state: FSMContext):
 @dp.message(Quiz.choosing_goss_subcategory)
 async def goss_subcategory_selected(message: types.Message, state: FSMContext):
     subcat = message.text.strip()
-
     if subcat == "⬅️ К категориям":
         await state.set_state(Quiz.choosing_category)
         await message.answer("Выберите категорию:", reply_markup=categories_menu())
@@ -473,7 +472,7 @@ async def goss_subcategory_selected(message: types.Message, state: FSMContext):
         await state.clear()
         await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
         return
-    
+
     data = await state.get_data()
     category = data.get("category")
     if category != "Для ГОСС" or subcat not in CATEGORY_SECTIONS["Для ГОСС"]:
@@ -482,9 +481,19 @@ async def goss_subcategory_selected(message: types.Message, state: FSMContext):
 
     await state.update_data(subcategory=subcat)
     await state.set_state(Quiz.choosing_section)
+    # Создаём меню разделов для выбранной организации
+    section_ids = CATEGORY_SECTIONS["Для ГОСС"][subcat]
+    kb = []
+    for sec_id in section_ids:
+        section = next((s for s in SECTIONS if s["id"] == sec_id), None)
+        if section:
+            emoji = SECTION_EMOJIS.get(sec_id, DEFAULT_SECTION_EMOJI)
+            kb.append([KeyboardButton(text=f"{emoji} {section['title']}")])
+    kb.append([KeyboardButton(text="⬅️ К категориям")])
+    kb.append([KeyboardButton(text="🏠 В главное меню")])
     await message.answer(
         f"<b>Вы выбрали организацию:</b> {subcat}\n\nВыберите раздел:",
-        reply_markup=sections_menu_goss(subcat)
+        reply_markup=ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
     )
 
 
@@ -500,26 +509,31 @@ async def subcategory_goss_handler(callback: types.CallbackQuery):
 @dp.message(Quiz.choosing_section)
 async def section_selected(message: types.Message, state: FSMContext):
     section_title = message.text.strip()
-    if section_title == "⬅️ К категориям":
-        data = await state.get_data()
-        category = data.get("category")
-        if category == "Для ГОСС":
-            await state.set_state(Quiz.choosing_goss_subcategory)
-            subcats = list(CATEGORY_SECTIONS["Для ГОСС"].keys())
-            kb = ReplyKeyboardMarkup(resize_keyboard=True)
-            for subcat in subcats:
-                kb.add(KeyboardButton(subcat))
-            kb.add(KeyboardButton("⬅️ К категориям"))
-            kb.add(KeyboardButton("🏠 В главное меню"))
-            await message.answer("Выберите организацию:", reply_markup=kb)
-        else:
+    # Убираем эмодзи перед сравнением
+    for emoji in SECTION_EMOJIS.values():
+        section_title = section_title.replace(emoji, "")
+    section_title = section_title.strip()
+
+    data = await state.get_data()
+    category = data.get("category")
+    section_ids = None
+    if category == "Для ГОСС":
+        subcat = data.get("subcategory")
+        if not subcat or subcat not in CATEGORY_SECTIONS["Для ГОСС"]:
+            await message.answer("Ошибка: выберите организацию заново.", reply_markup=categories_menu())
             await state.set_state(Quiz.choosing_category)
-            await message.answer("Выберите категорию:", reply_markup=categories_menu())
+            return
+        section_ids = CATEGORY_SECTIONS["Для ГОСС"][subcat]
+    else:
+        section_ids = CATEGORY_SECTIONS[category]
+
+    # Ищем раздел только по title и id
+    section = next((s for s in SECTIONS if s["title"] == section_title and s["id"] in section_ids), None)
+    if not section:
+        await message.answer("❌ Такого раздела нет. Выберите раздел из списка.", reply_markup=sections_menu(category))
         return
-    if section_title == "🏠 В главное меню":
-        await state.clear()
-        await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
-        return
+    # Дальше твоя логика!
+    await message.answer(f"Вы выбрали раздел: {section_title}")
 
     data = await state.get_data()
     category = data.get("category")
