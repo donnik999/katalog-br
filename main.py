@@ -280,6 +280,7 @@ class Quiz(StatesGroup):
     waiting_photo = State()
     waiting_video = State()
 
+user_infos = {}  # user_id: {"username": str, "nickname": str}
 user_scores = {}
 user_cooldowns = {}  # user_id: {section_id: last_time}
 user_random_questions = {}  # user_id: {section_id: [индексы вопросов в рандоме]}
@@ -638,12 +639,17 @@ async def answer_handler(message: types.Message, state: FSMContext):
 async def profile_cmd(message: types.Message):
     user_id = str(message.from_user.id)
     score = user_scores.get(user_id, 0)
+    user = message.from_user
+    username = f"@{user.username}" if user.username else "—"
+    nickname = user.first_name or "—"
     text = (
         f"👤 <b>Твой профиль</b>\n"
         f"┏ ID: <code>{user_id}</code>\n"
+        f"┣ Никнейм: {nickname}\n"
+        f"┣ Username: {username}\n"
         f"┣ Баллы: <b>{score}</b> ⭐\n"
     )
-    await message.answer(text, reply_markup=main_menu(message.from_user.id))
+    await message.answer(text, reply_markup=main_menu(user.id))
 
 @dp.message(F.text == "🏆 Топ")
 async def top_cmd(message: types.Message):
@@ -653,7 +659,10 @@ async def top_cmd(message: types.Message):
     top = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)[:10]
     text = "🏆 <b>Топ-10 пользователей данного бота:</b>\n"
     for i, (uid, score) in enumerate(top, 1):
-        text += f"{i}) <code>{uid}</code> — <b>{score}⭐</b>\n"
+        info = user_infos.get(uid, {})
+        username = f"@{info.get('username')}" if info.get('username') else "—"
+        nickname = info.get('nickname', "—")
+        text += f"{i}) <code>{uid}</code> | {nickname} | {username} — <b>{score}⭐</b>\n"
     await message.answer(text, reply_markup=main_menu(message.from_user.id))
 
 @dp.message(F.text == "🖼 Изменить фотографию приветствия")
