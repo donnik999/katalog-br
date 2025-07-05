@@ -462,11 +462,6 @@ async def category_selected(message: types.Message, state: FSMContext):
         reply_markup=sections_menu(category)
     )
 
-    await message.answer(
-        f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
-        reply_markup=sections_menu(category)
-    )
-
 @dp.callback_query(F.data.startswith("subcat_"))
 async def subcategory_goss_handler(callback: types.CallbackQuery):
     subcat = callback.data[len("subcat_"):]
