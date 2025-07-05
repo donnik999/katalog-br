@@ -436,17 +436,21 @@ async def category_selected(message: types.Message, state: FSMContext):
     if category not in CATEGORY_SECTIONS:
         await message.answer("❌ Такой категории нет. Выберите категорию из списка.")
         return
+
     await state.update_data(category=category)
     await state.set_state(Quiz.choosing_section)
+
+    if category == "Для ГОСС":
+        await message.answer(
+            "Выберите организацию:",
+            reply_markup=subcategories_menu()
+        )
+        return
+
     await message.answer(
         f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
         reply_markup=sections_menu(category)
-    if category == "Для ГОСС":
-    await callback.message.edit_text(
-        "Выберите организацию:",
-        reply_markup=subcategories_menu()
     )
-    return
 
 @dp.callback_query(F.data.startswith("subcat_"))
 async def subcategory_goss_handler(callback: types.CallbackQuery):
