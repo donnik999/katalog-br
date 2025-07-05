@@ -445,7 +445,7 @@ async def category_selected(message: types.Message, state: FSMContext):
     # Для ГОСС — выводим подкатегории (ключи словаря)
     if category == "Для ГОСС":
         await state.set_state(Quiz.choosing_goss_subcategory)
-                subcats = list(CATEGORY_SECTIONS["Для ГОСС"].keys())
+        subcats = list(CATEGORY_SECTIONS["Для ГОСС"].keys())
         kb = ReplyKeyboardMarkup(
             keyboard=[[KeyboardButton(text=subcat)] for subcat in subcats] +
                     [[KeyboardButton(text="⬅️ К категориям")], [KeyboardButton(text="🏠 В главное меню")]],
