@@ -274,8 +274,9 @@ SECTIONS = [
 
 class Quiz(StatesGroup):
     choosing_category = State()
+    choosing_goss_subcategory = State()
     choosing_section = State()
-    answering = State()
+    answering = State() 
     waiting_photo = State()
     waiting_video = State()
 
