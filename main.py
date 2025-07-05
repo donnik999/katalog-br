@@ -527,34 +527,57 @@ async def section_selected(message: types.Message, state: FSMContext):
     else:
         section_ids = CATEGORY_SECTIONS[category]
 
+    # Кнопка "К категориям"
+    if section_title == "К категориям":
+        if category == "Для ГОСС":
+            await state.set_state(Quiz.choosing_goss_subcategory)
+            subcats = list(CATEGORY_SECTIONS["Для ГОСС"].keys())
+            kb = ReplyKeyboardMarkup(
+                keyboard=[[KeyboardButton(text=subcat)] for subcat in subcats] +
+                        [[KeyboardButton(text="⬅️ К категориям")], [KeyboardButton(text="🏠 В главное меню")]],
+                resize_keyboard=True
+            )
+            await message.answer("Выберите организацию:", reply_markup=kb)
+        else:
+            await state.set_state(Quiz.choosing_category)
+            await message.answer("Выберите категорию:", reply_markup=categories_menu())
+        return
+
+    # Кнопка "В главное меню"
+    if section_title == "В главное меню":
+        await state.clear()
+        await message.answer("Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
+        return
+
     # Ищем раздел только по title и id
     section = next((s for s in SECTIONS if s["title"] == section_title and s["id"] in section_ids), None)
     if not section:
         await message.answer("❌ Такого раздела нет. Выберите раздел из списка.", reply_markup=sections_menu(category))
         return
-    # Дальше твоя логика!
-    await message.answer(f"Вы выбрали раздел: {section_title}")
 
-    data = await state.get_data()
-    category = data.get("category")
-    section_ids = None
-    if category == "Для ГОСС":
-        subcat = data.get("subcategory")
-        if not subcat or subcat not in CATEGORY_SECTIONS["Для ГОСС"]:
-            await message.answer("Ошибка: выберите организацию заново.", reply_markup=categories_menu())
-            await state.set_state(Quiz.choosing_category)
-            return
-        section_ids = CATEGORY_SECTIONS["Для ГОСС"][subcat]
-    else:
-        section_ids = CATEGORY_SECTIONS[category]
+    # --- Логика старта викторины ---
+    # Запускаем вопросы
+    questions = section["questions"]
+    user_id = str(message.from_user.id)
+    q_count = len(questions)
+    # Случайный порядок вопросов
+    question_order = list(range(q_count))
+    random.shuffle(question_order)
+    if user_id not in user_random_questions:
+        user_random_questions[user_id] = {}
+    user_random_questions[user_id][section["id"]] = question_order
 
-    # Проверка раздела
-        section = next((s for s in SECTIONS if s["title"].strip() == section_title.strip() and s["id"] in section_ids), None)
-    if not section:
-        await message.answer("❌ Такого раздела нет. Выберите раздел из списка.", reply_markup=sections_menu(category))
-        return
-    # Дальше твоя логика!
-    await message.answer(f"Вы выбрали раздел: {section_title}")
+    # Сохраняем данные в state
+    await state.update_data(section_id=section["id"], q_index=0)
+    await state.set_state(Quiz.answering)
+
+    # Отправляем первый вопрос
+    first_q_idx = question_order[0]
+    first_q = questions[first_q_idx]
+    await message.answer(
+        f"<b>{first_q['question']}</b>",
+        reply_markup=question_kb(first_q["options"])
+    )
 
 @dp.message(Quiz.answering)
 async def answer_handler(message: types.Message, state: FSMContext):
