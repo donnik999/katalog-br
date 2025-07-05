@@ -591,8 +591,8 @@ async def section_selected(message: types.Message, state: FSMContext):
     first_q_idx = question_order[0]
     first_q = questions[first_q_idx]
     await message.answer(
-        f"[1 вопрос из {q_count}]\n<b>{first_q['question']}</b>",
-        reply_markup=question_kb(first_q["options"])
+    f"[1 вопрос из {q_count}]\n<b>{first_q['question']} 💬</b>",
+    reply_markup=question_kb(first_q["options"])
     ) 
     
     now = int(time.time())
@@ -647,8 +647,8 @@ async def answer_handler(message: types.Message, state: FSMContext):
         next_q_real_idx = question_order[next_q_index]
         next_q = section["questions"][next_q_real_idx]
         await message.answer(
-            f"[{next_q_index+1} вопрос из {q_count}]\n<b>{next_q['question']}</b>",
-            reply_markup=question_kb(next_q["options"])
+    f"[{next_q_index+1} вопрос из {q_count}]\n<b>{next_q['question']} 💬</b>",
+    reply_markup=question_kb(next_q["options"])
         )
     else:
         # выставляем кулдаун завершения раздела
