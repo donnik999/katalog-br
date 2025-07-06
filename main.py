@@ -386,6 +386,20 @@ def main_menu(user_id=None):
     kb.append([KeyboardButton(text="🏠 В главное меню")])
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
+def make_question_box(question: str) -> str:
+    question_lines = question.split('\n')
+    max_len = max(len(line) for line in question_lines)
+    box_width = max(30, max_len + 6)
+    top = "┌" + "─" * (box_width - 2) + "┐"
+    title = "│ 💡 <b>Вопрос</b>  💬" + " " * (box_width - 17) + "│"
+    empty = "│" + " " * (box_width - 2) + "│"
+    question_block = ""
+    for line in question_lines:
+        question_block += "│ " + line + " " * (box_width - 3 - len(line)) + "│\n"
+    bottom = "└" + "─" * (box_width - 2) + "┘"
+    return f"{top}\n{title}\n{empty}\n{question_block}{empty}\n{bottom}\n✨ Ответь ниже! ✨"
+
+
 def categories_menu():
     kb = [
         [KeyboardButton(text=f"{CATEGORY_EMOJIS.get(cat, '')} {cat}".strip())]
@@ -647,20 +661,21 @@ async def section_selected(message: types.Message, state: FSMContext):
     # Показываем первый вопрос с номером
     first_q_idx = question_order[0]
     first_q = questions[first_q_idx]
-    await message.answer(
-    f"[1 вопрос из {q_count}]"
-)
-await message.answer(
-    make_question_box(first_q['question']),
-    parse_mode="HTML",
-    reply_markup=question_kb(first_q["options"])
-)
 
-now = int(time.time())
-if user_id not in user_cooldowns:
-    user_cooldowns[user_id] = {}
-user_cooldowns[user_id][section_id] = now
-save_data()
+    await message.answer(
+        f"[1 вопрос из {q_count}]"
+    )
+    await message.answer(
+        make_question_box(first_q['question']),
+        parse_mode="HTML",
+        reply_markup=question_kb(first_q["options"])
+    )
+
+    now = int(time.time())
+    if user_id not in user_cooldowns:
+        user_cooldowns[user_id] = {}
+    user_cooldowns[user_id][section["id"]] = now
+    save_data()
     
 
 @dp.message(Quiz.answering)
