@@ -648,9 +648,13 @@ async def section_selected(message: types.Message, state: FSMContext):
     first_q_idx = question_order[0]
     first_q = questions[first_q_idx]
     await message.answer(
-    f"[1 вопрос из {q_count}]\n<b>{first_q['question']} 💬</b>",
+    f"[1 вопрос из {q_count}]"
+)
+await message.answer(
+    make_question_box(first_q['question']),
+    parse_mode="HTML",
     reply_markup=question_kb(first_q["options"])
-    ) 
+    )
     
     now = int(time.time())
     if user_id not in user_cooldowns:
