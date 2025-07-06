@@ -656,11 +656,11 @@ await message.answer(
     reply_markup=question_kb(first_q["options"])
 )
 
-    now = int(time.time())
-    if user_id not in user_cooldowns:
-        user_cooldowns[user_id] = {}
-    user_cooldowns[user_id][section_id] = now
-    save_data()
+now = int(time.time())
+if user_id not in user_cooldowns:
+    user_cooldowns[user_id] = {}
+user_cooldowns[user_id][section_id] = now
+save_data()
     
 
 @dp.message(Quiz.answering)
