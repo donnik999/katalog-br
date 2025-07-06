@@ -654,9 +654,8 @@ await message.answer(
     make_question_box(first_q['question']),
     parse_mode="HTML",
     reply_markup=question_kb(first_q["options"])
-    )
-    
-    now = int(time.time())
+)
+       now = int(time.time())
     if user_id not in user_cooldowns:
         user_cooldowns[user_id] = {}
     user_cooldowns[user_id][section_id] = now
