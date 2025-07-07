@@ -1340,7 +1340,7 @@ async def goss_subcategory_selected(message: types.Message, state: FSMContext):
     await state.update_data(subcategory=subcat)
     await state.set_state(Quiz.choosing_section)
     # Создаём меню разделов для выбранной организации
-    section_ids = CATEGORY_SECTIONS["Для ГОСС"][subcat]
+    section_ids = CATEGORY_SECTIONS["Для ГОСС", "Для Заместителя/Лидера (Обычный свод правил)][subcat]
     kb = []
     for sec_id in section_ids:
         section = next((s for s in SECTIONS if s["id"] == sec_id), None)
