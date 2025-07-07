@@ -20,7 +20,7 @@ COOLDOWN_SECONDS = 5 * 60  # 5 минут
 CATEGORY_EMOJIS = {
     "Для ОПГ": "🚬", 
     "Для ГОСС": "🏢", 
-    "Для Заместителя/Лидера": "👨‍💼"
+    "Для Заместителя/Лидера (Обычный свод правил)": "👨‍💼"
 }
 
 CATEGORY_SECTIONS = {
@@ -1205,7 +1205,7 @@ def sections_menu(category):
 
 def subcategories_menu():
     kb = InlineKeyboardMarkup(row_width=2)
-    for subcat in CATEGORY_SECTIONS["Для ГОСС"]:
+    for subcat in CATEGORY_SECTIONS["Для ГОСС", "Для Заместителя/Лидера (Обычный свод правил)"]:
         kb.add(InlineKeyboardButton(text=subcat, callback_data=f"subcat_{subcat}"))
     return kb
 
@@ -1301,9 +1301,9 @@ async def category_selected(message: types.Message, state: FSMContext):
     await state.update_data(category=category)
 
     # Для ГОСС — выводим подкатегории (ключи словаря)
-    if category == "Для ГОСС":
+    if category == "Для ГОСС", "Для Заместителя/Лидера (Обычный свод правил):
         await state.set_state(Quiz.choosing_goss_subcategory)
-        subcats = list(CATEGORY_SECTIONS["Для ГОСС"].keys())
+        subcats = list(CATEG_SECTIONS["Для ГОСС"].keys())
         kb = ReplyKeyboardMarkup(
             keyboard=[[KeyboardButton(text=subcat)] for subcat in subcats] +
                     [[KeyboardButton(text="⬅️ К категориям")], [KeyboardButton(text="🏠 В главное меню")]],
