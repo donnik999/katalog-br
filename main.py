@@ -32,7 +32,8 @@ CATEGORY_SECTIONS = {
         "🏢 Правительство": ["deportament", "perevod", "pravo"],
         "🚑 Центральная больница": ["deportament", "perevod", "cb", "cena"],
         "🗞 СМИ": ["deportament", "perevod", "smi", "pro", "ppv"],
-        "👮 ФСИН": ["deportament", "perevod", "fsin", "konvoi"],
+        "👮 ФСИН": ["deportament", "perevod", "fsin", "konvoi"]
+    }, 
     "Для Заместителя/Лидера (Обычный свод правил)": {
         "🪖 Армия": ["deportament", "perevod","rp-t"],
         "🚓 УМВД/ГИБДД": ["deportament", "perevod", "rp-t", "yk", "koap", "oblava", "rp", "zam"],
@@ -42,7 +43,6 @@ CATEGORY_SECTIONS = {
         "🗞 СМИ": ["deportament", "perevod", "pro", "ppv", "rp-t", "rp", "zam"],
         "👮 ФСИН": ["deportament", "perevod", "konvoi", "rp-t", "rp", "zam"], 
         "🚬 ОПГ": ["rp", "rp-t", "bizwar", "pohitil", "poezdka", "zam"]
-        }
     }
 }
 
