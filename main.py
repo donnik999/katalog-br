@@ -35,14 +35,14 @@ CATEGORY_SECTIONS = {
         "👮 ФСИН": ["deportament", "perevod", "fsin", "konvoi"]
     }, 
     "Для Заместителя/Лидера (Обычный свод правил)": {
-        "🪖 Армия": ["deportament", "perevod","rp-t", "zam"],
-        "🚓 УМВД/ГИБДД": ["deportament", "perevod", "rp-t", "yk", "koap", "oblava", "rp", "zam"],
-        "🕵️‍♂️ ФСБ": ["deportament", "perevod", "fcb", " yk", "koap", "verbovka", "rp-t", "rp", "zam"],
-        "🏢 Правительство": ["deportament", "perevod", "rp-t", "rp", "zam"],
-        "🚑 Центральная больница": ["deportament", "perevod", "rp-t", "rp", "zam"],
-        "🗞 СМИ": ["deportament", "perevod", "pro", "ppv", "rp-t", "rp", "zam"],
-        "👮 ФСИН": ["deportament", "perevod", "konvoi", "rp-t", "rp", "zam"], 
-        "🚬 ОПГ": ["rp", "rp-t", "bizwar", "pohitil", "poezdka", "zam"]
+        "🪖 Армия": ["deportament", "perevod","rp-t", "zam", "leader"],
+        "🚓 УМВД/ГИБДД": ["deportament", "perevod", "rp-t", "yk", "koap", "oblava", "rp", "zam", "leader"],
+        "🕵️‍♂️ ФСБ": ["deportament", "perevod", "fcb", " yk", "koap", "verbovka", "rp-t", "rp", "zam", "leader"],
+        "🏢 Правительство": ["deportament", "perevod", "rp-t", "rp", "zam", "leader"],
+        "🚑 Центральная больница": ["deportament", "perevod", "rp-t", "rp", "zam", "leader"],
+        "🗞 СМИ": ["deportament", "perevod", "pro", "ppv", "rp-t", "rp", "zam", "leader"],
+        "👮 ФСИН": ["deportament", "perevod", "konvoi", "rp-t", "rp", "zam", "leader"], 
+        "🚬 ОПГ": ["rp", "rp-t", "bizwar", "pohitil", "poezdka", "zam", "leader"]
     }
 }
 
