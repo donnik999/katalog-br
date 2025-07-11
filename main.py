@@ -1265,7 +1265,12 @@ def subcategories_menu(category):
     return kb
 
 def question_kb(options):
-    return ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text=o)] for o in options], resize_keyboard=True)
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=opt)] for opt in options] +
+                [[KeyboardButton(text="❌ Отмена")]],
+        resize_keyboard=True
+    )
+    return kb
 
 bot = Bot(BOT_TOKEN, parse_mode="HTML")
 dp = Dispatcher()
@@ -1508,13 +1513,19 @@ async def section_selected(message: types.Message, state: FSMContext):
         f"[1 вопрос из {q_count}]\n<b>{first_q['question']} 💬</b>",
         reply_markup=question_kb(first_q["options"])
     ) 
+    await message.answer("Для отмены тренажера нажмите кнопку ❌ Отмена.")
     
     now = int(time.time())
     if user_id not in user_cooldowns:
         user_cooldowns[user_id] = {}
     user_cooldowns[user_id][section["id"]] = now
     save_data()
-    
+
+@dp.message(Quiz.answering, F.text == "❌ Отмена")
+async def cancel_quiz(message: types.Message, state: FSMContext):
+    await state.clear()
+    await message.answer("Тренажер отменен. Вы в главном меню.", reply_markup=main_menu(message.from_user.id))
+
 @dp.message(Quiz.answering)
 async def answer_handler(message: types.Message, state: FSMContext):
     user_id = str(message.from_user.id)
