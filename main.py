@@ -1420,6 +1420,7 @@ async def subcategory_goss_handler(callback: types.CallbackQuery):
     await callback.message.edit_text(f"Выберите раздел в организации {subcat}:", reply_markup=kb)
 
 @dp.message(Quiz.choosing_section)
+@dp.message(Quiz.choosing_section)
 async def section_selected(message: types.Message, state: FSMContext):
     section_title = message.text.strip()
     # Убираем эмодзи перед сравнением
@@ -1427,13 +1428,15 @@ async def section_selected(message: types.Message, state: FSMContext):
         section_title = section_title.replace(emoji, "")
     section_title = section_title.strip()
 
-    # Обработка кнопки "К категориям" для обоих категорий
+    # Обработка кнопки "К категориям"
     if section_title in ["⬅️ К категориям", "К категориям"]:
         data = await state.get_data()
         category = data.get("category")
-        if category == "Для ГОСС":
+        cat_sections = CATEGORY_SECTIONS.get(category)
+        # Если категория с подкатегориями (dict), показываем их
+        if isinstance(cat_sections, dict):
             await state.set_state(Quiz.choosing_goss_subcategory)
-            subcats = list(CATEGORY_SECTIONS["Для ГОСС"].keys())
+            subcats = list(cat_sections.keys())
             kb = ReplyKeyboardMarkup(
                 keyboard=[[KeyboardButton(text=subcat)] for subcat in subcats] +
                         [[KeyboardButton(text="⬅️ К категориям")], [KeyboardButton(text="🏠 В главное меню")]],
@@ -1441,6 +1444,7 @@ async def section_selected(message: types.Message, state: FSMContext):
             )
             await message.answer("Выберите организацию:", reply_markup=kb)
         else:
+            # Если категория без подкатегорий — возвращаемся к выбору категории
             await state.set_state(Quiz.choosing_category)
             await message.answer("Выберите категорию:", reply_markup=categories_menu())
         return
@@ -1453,16 +1457,18 @@ async def section_selected(message: types.Message, state: FSMContext):
 
     data = await state.get_data()
     category = data.get("category")
+    cat_sections = CATEGORY_SECTIONS.get(category)
     section_ids = None
-    if category == "Для ГОСС":
+    # Определяем список id разделов для выбранной категории и подкатегории
+    if isinstance(cat_sections, dict):
         subcat = data.get("subcategory")
-        if not subcat or subcat not in CATEGORY_SECTIONS["Для ГОСС"]:
+        if not subcat or subcat not in cat_sections:
             await message.answer("Ошибка: выберите организацию заново.", reply_markup=categories_menu())
             await state.set_state(Quiz.choosing_category)
             return
-        section_ids = CATEGORY_SECTIONS["Для ГОСС"][subcat]
+        section_ids = cat_sections[subcat]
     else:
-        section_ids = CATEGORY_SECTIONS[category]
+        section_ids = cat_sections
 
     # Ищем раздел только по title и id
     section = next((s for s in SECTIONS if s["title"] == section_title and s["id"] in section_ids), None)
@@ -1485,7 +1491,6 @@ async def section_selected(message: types.Message, state: FSMContext):
 
     # --- Логика старта викторины ---
     questions = section["questions"]
-    user_id = str(message.from_user.id)
     q_count = len(questions)
     question_order = list(range(q_count))
     random.shuffle(question_order)
@@ -1500,17 +1505,16 @@ async def section_selected(message: types.Message, state: FSMContext):
     first_q_idx = question_order[0]
     first_q = questions[first_q_idx]
     await message.answer(
-    f"[1 вопрос из {q_count}]\n<b>{first_q['question']} 💬</b>",
-    reply_markup=question_kb(first_q["options"])
+        f"[1 вопрос из {q_count}]\n<b>{first_q['question']} 💬</b>",
+        reply_markup=question_kb(first_q["options"])
     ) 
     
     now = int(time.time())
     if user_id not in user_cooldowns:
         user_cooldowns[user_id] = {}
-    user_cooldowns[user_id][section_id] = now
+    user_cooldowns[user_id][section["id"]] = now
     save_data()
     
-
 @dp.message(Quiz.answering)
 async def answer_handler(message: types.Message, state: FSMContext):
     user_id = str(message.from_user.id)
