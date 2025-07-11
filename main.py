@@ -1303,31 +1303,23 @@ async def category_selected(message: types.Message, state: FSMContext):
 
     await state.update_data(category=category)
 
-    # Для ГОСС — выводим подкатегории (ключи словаря)
     cat_sections = CATEGORY_SECTIONS.get(category)
-
-if isinstance(cat_sections, dict):  # Для ГОСС
-    if subcat not in cat_sections:
-        await message.answer("❌ Такой организации нет. Выберите из списка.", reply_markup=categories_menu())
-        return
-    await state.update_data(subcategory=subcat)
-    await state.set_state(Quiz.choosing_section)
-elif isinstance(cat_sections, list):  # Для Заместителя/Лидера (Обычный свод правил)
-    if subcat not in cat_sections:
-        await message.answer("❌ Такой организации нет. Выберите из списка.", reply_markup=categories_menu())
-        return
-    await state.update_data(subcategory=subcat)
-    await state.set_state(Quiz.choosing_section)
-else:
-    await message.answer("❌ Ошибка категории.", reply_markup=categories_menu())
-    return
-
-    # Для ОПГ — выводим разделы по списку id
-    await state.set_state(Quiz.choosing_section)
-    await message.answer(
-        f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
-        reply_markup=sections_menu(category)
-    )
+    if isinstance(cat_sections, dict):  # ГОСС и Заместители/Лидеры
+        await state.set_state(Quiz.choosing_goss_subcategory)
+        subcats = list(cat_sections.keys())
+        kb = ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(text=subcat)] for subcat in subcats] +
+                    [[KeyboardButton(text="⬅️ К категориям")], [KeyboardButton(text="🏠 В главное меню")]],
+            resize_keyboard=True
+        )
+        await message.answer("Выберите организацию:", reply_markup=kb)
+    else:
+        # Для ОПГ — сразу разделы
+        await state.set_state(Quiz.choosing_section)
+        await message.answer(
+            f"<b>Вы выбрали категорию:</b> {category}\n\nВыберите раздел:",
+            reply_markup=sections_menu(category)
+        )
 
 @dp.message(Quiz.choosing_goss_subcategory)
 async def goss_subcategory_selected(message: types.Message, state: FSMContext):
@@ -1343,14 +1335,15 @@ async def goss_subcategory_selected(message: types.Message, state: FSMContext):
 
     data = await state.get_data()
     category = data.get("category")
-    if category != "Для ГОСС" or subcat not in CATEGORY_SECTIONS["Для ГОСС"]:
+    cat_sections = CATEGORY_SECTIONS.get(category)
+    if not cat_sections or subcat not in cat_sections:
         await message.answer("❌ Такой организации нет. Выберите из списка.", reply_markup=categories_menu())
         return
 
     await state.update_data(subcategory=subcat)
     await state.set_state(Quiz.choosing_section)
     # Создаём меню разделов для выбранной организации
-    section_ids = CATEGORY_SECTIONS[category][subcat]
+    section_ids = cat_sections[subcat]
     kb = []
     for sec_id in section_ids:
         section = next((s for s in SECTIONS if s["id"] == sec_id), None)
@@ -1362,7 +1355,7 @@ async def goss_subcategory_selected(message: types.Message, state: FSMContext):
     await message.answer(
         f"<b>Вы выбрали организацию:</b> {subcat}\n\nВыберите раздел:",
         reply_markup=ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
-    )
+            )
 
 
 @dp.callback_query(F.data.startswith("subcat_"))
