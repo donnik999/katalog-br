@@ -1203,9 +1203,12 @@ def sections_menu(category):
     kb.append([KeyboardButton(text="🏠 В главное меню")])
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
-def subcategories_menu():
+def subcategories_menu(category):
     kb = InlineKeyboardMarkup(row_width=2)
-    for subcat in CATEGORY_SECTIONS["Для ГОСС", "Для Заместителя/Лидера (Обычный свод правил)"]:
+    subcats = []
+    if category in CATEGORY_SECTIONS and isinstance(CATEGORY_SECTIONS[category], dict):
+        subcats = CATEGORY_SECTIONS[category].keys()
+    for subcat in subcats:
         kb.add(InlineKeyboardButton(text=subcat, callback_data=f"subcat_{subcat}"))
     return kb
 
@@ -1301,9 +1304,9 @@ async def category_selected(message: types.Message, state: FSMContext):
     await state.update_data(category=category)
 
     # Для ГОСС — выводим подкатегории (ключи словаря)
-    if category == "Для ГОСС", "Для Заместителя/Лидера (Обычный свод правил):
+    if category in ["Для ГОСС", "Для Заместителя/Лидера (Обычный свод правил)"]:
         await state.set_state(Quiz.choosing_goss_subcategory)
-        subcats = list(CATEG_SECTIONS["Для ГОСС"].keys())
+        subcats = list(CATEGORY_SECTIONS[category].keys())
         kb = ReplyKeyboardMarkup(
             keyboard=[[KeyboardButton(text=subcat)] for subcat in subcats] +
                     [[KeyboardButton(text="⬅️ К категориям")], [KeyboardButton(text="🏠 В главное меню")]],
@@ -1340,7 +1343,7 @@ async def goss_subcategory_selected(message: types.Message, state: FSMContext):
     await state.update_data(subcategory=subcat)
     await state.set_state(Quiz.choosing_section)
     # Создаём меню разделов для выбранной организации
-    section_ids = CATEGORY_SECTIONS["Для ГОСС", "Для Заместителя/Лидера (Обычный свод правил)][subcat]
+    section_ids = CATEGORY_SECTIONS[category][subcat]
     kb = []
     for sec_id in section_ids:
         section = next((s for s in SECTIONS if s["id"] == sec_id), None)
